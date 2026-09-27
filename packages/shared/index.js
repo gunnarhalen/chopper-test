@@ -9,6 +9,8 @@ export const COLORS = [
 
 export const DATE_FORMAT = "YYYY-MM-DD";
 
+export const NOTE_MAX_LENGTH = 80;
+
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export function randomId() {
@@ -88,6 +90,21 @@ export function normalizeHabit(habit, index = 0) {
   if (typeof color !== "string" || !COLORS.includes(color)) {
     throw new Error(`habit ${index} has an invalid color`);
   }
+  const archived = habit.archived === undefined ? false : habit.archived;
+  if (typeof archived !== "boolean") {
+    throw new Error(`habit ${index} has an invalid archived flag`);
+  }
+  const rawNote =
+    habit.note === undefined || habit.note === null ? "" : habit.note;
+  if (typeof rawNote !== "string") {
+    throw new Error(`habit ${index} has an invalid note`);
+  }
+  const note = rawNote.trim();
+  if (note.length > NOTE_MAX_LENGTH) {
+    throw new Error(
+      `habit ${index} note must be at most ${NOTE_MAX_LENGTH} characters`,
+    );
+  }
   const id =
     typeof habit.id === "string" && habit.id.trim() ? habit.id.trim() : randomId();
   const createdAt =
@@ -103,6 +120,8 @@ export function normalizeHabit(habit, index = 0) {
     name,
     color,
     createdAt,
+    archived,
+    note,
     checkins: [...new Set(checkins)].sort(),
   };
 }
@@ -117,15 +136,29 @@ export function normalizeState(input) {
   return { habits: input.habits.map((habit, index) => normalizeHabit(habit, index)) };
 }
 
-export function createHabit({ name, color } = {}) {
-  return normalizeHabit({ name, color });
+export function createHabit({ name, color, note } = {}) {
+  return normalizeHabit({ name, color, note });
 }
 
-export function toggleToday(habit, now = new Date()) {
-  const key = todayKey(now);
+export function toggleDate(habit, key) {
+  if (!isValidDateKey(key)) {
+    throw new Error("toggleDate needs a valid YYYY-MM-DD date");
+  }
   const has = habit.checkins.includes(key);
   const checkins = has
     ? habit.checkins.filter((entry) => entry !== key)
     : [...habit.checkins, key].sort();
   return { ...habit, checkins };
+}
+
+export function toggleToday(habit, now = new Date()) {
+  return toggleDate(habit, todayKey(now));
+}
+
+export function weekSummary(checkins = [], now = new Date()) {
+  const days = lastSevenDays(checkins, now);
+  return {
+    done: days.filter((day) => day.done).length,
+    total: days.length,
+  };
 }

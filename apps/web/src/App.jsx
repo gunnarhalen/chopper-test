@@ -1,13 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  COLORS,
-  createHabit,
-  currentStreak,
-  formatDisplay,
-  lastSevenDays,
-  todayKey,
-  toggleToday,
-} from "@habits/shared";
+import { createHabit, todayKey, toggleDate } from "@habits/shared";
+import Header from "./components/Header.jsx";
+import HabitForm from "./components/HabitForm.jsx";
+import HabitCard from "./components/HabitCard.jsx";
+import ConfirmDialog from "./components/ConfirmDialog.jsx";
+import ArchivedSection from "./components/ArchivedSection.jsx";
 
 async function fetchState() {
   const res = await fetch("/api/habits");
@@ -15,7 +12,7 @@ async function fetchState() {
   return res.json();
 }
 
-async function saveState(habits) {
+async function putState(habits) {
   const res = await fetch("/api/habits", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -32,8 +29,9 @@ export default function App() {
   const [habits, setHabits] = useState([]);
   const [status, setStatus] = useState("loading");
   const [error, setError] = useState("");
-  const [name, setName] = useState("");
-  const [color, setColor] = useState(COLORS[0]);
+  const [saveStatus, setSaveStatus] = useState("idle");
+  const [editingId, setEditingId] = useState(null);
+  const [confirming, setConfirming] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -58,135 +56,148 @@ export default function App() {
       const previous = habits;
       setHabits(nextHabits);
       setError("");
+      setSaveStatus("saving");
       try {
-        const saved = await saveState(nextHabits);
+        const saved = await putState(nextHabits);
         setHabits(saved.habits);
+        setSaveStatus("saved");
       } catch (err) {
         setHabits(previous);
         setError(err.message);
+        setSaveStatus("error");
       }
     },
     [habits],
   );
 
-  function handleAdd(event) {
-    event.preventDefault();
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    setName("");
-    mutate([...habits, createHabit({ name: trimmed, color })]);
+  function handleAdd(values) {
+    mutate([...habits, createHabit(values)]);
+  }
+
+  function handleEdit(id, values) {
+    setEditingId(null);
+    mutate(
+      habits.map((habit) =>
+        habit.id === id ? { ...habit, name: values.name, color: values.color, note: values.note } : habit,
+      ),
+    );
   }
 
   function handleToggle(id) {
-    mutate(habits.map((habit) => (habit.id === id ? toggleToday(habit) : habit)));
+    mutate(habits.map((habit) => (habit.id === id ? toggleDate(habit, todayKey()) : habit)));
   }
 
-  function handleDelete(habit) {
-    if (!window.confirm(`Excluir "${habit.name}"?`)) return;
-    mutate(habits.filter((entry) => entry.id !== habit.id));
+  function handleToggleDate(id, key) {
+    mutate(habits.map((habit) => (habit.id === id ? toggleDate(habit, key) : habit)));
   }
+
+  function handleArchive(id) {
+    mutate(habits.map((habit) => (habit.id === id ? { ...habit, archived: true } : habit)));
+  }
+
+  function handleRestore(id) {
+    mutate(habits.map((habit) => (habit.id === id ? { ...habit, archived: false } : habit)));
+  }
+
+  function handleMove(id, direction) {
+    const active = habits.filter((habit) => !habit.archived);
+    const pos = active.findIndex((habit) => habit.id === id);
+    const target = pos + direction;
+    if (pos < 0 || target < 0 || target >= active.length) return;
+    const a = active[pos];
+    const b = active[target];
+    mutate(
+      habits.map((habit) => {
+        if (habit.id === a.id) return b;
+        if (habit.id === b.id) return a;
+        return habit;
+      }),
+    );
+  }
+
+  function confirmDelete() {
+    if (!confirming) return;
+    const id = confirming.id;
+    setConfirming(null);
+    mutate(habits.filter((habit) => habit.id !== id));
+  }
+
+  const activeHabits = habits.filter((habit) => !habit.archived);
+  const archivedHabits = habits.filter((habit) => habit.archived);
+  const today = todayKey();
+  const doneCount = activeHabits.filter((habit) => habit.checkins.includes(today)).length;
 
   return (
     <div className="app">
-      <header className="header">
-        <h1>Hábitos</h1>
-        <p className="today">{formatDisplay(todayKey())}</p>
-      </header>
+      <Header
+        doneCount={doneCount}
+        totalCount={activeHabits.length}
+        saveStatus={saveStatus}
+      />
 
-      <form className="add-form" onSubmit={handleAdd}>
-        <input
-          className="add-form__name"
-          type="text"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          placeholder="Novo hábito (ex.: Meditar)"
-          maxLength={60}
-          aria-label="Nome do hábito"
-        />
-        <div className="palette" role="radiogroup" aria-label="Cor do hábito">
-          {COLORS.map((option) => (
-            <button
-              key={option}
-              type="button"
-              className={`palette__dot${color === option ? " is-selected" : ""}`}
-              style={{ backgroundColor: option }}
-              onClick={() => setColor(option)}
-              aria-label={`Cor ${option}`}
-              aria-pressed={color === option}
-            />
-          ))}
-        </div>
-        <button className="add-form__submit" type="submit" disabled={!name.trim()}>
-          Adicionar
-        </button>
-      </form>
+      <HabitForm key="new" onSubmit={handleAdd} submitLabel="Adicionar" />
 
       {error ? <p className="banner banner--error">{error}</p> : null}
 
       {status === "loading" ? <p className="muted">Carregando…</p> : null}
 
-      {status === "ready" && habits.length === 0 ? (
+      {status === "ready" && activeHabits.length === 0 ? (
         <div className="empty">
-          <p className="empty__title">Nenhum hábito ainda</p>
-          <p className="muted">Adicione o primeiro acima e comece a sequência.</p>
+          <p className="empty__title">
+            {archivedHabits.length > 0 ? "Nada ativo por aqui" : "Nenhum hábito ainda"}
+          </p>
+          <p className="muted">
+            {archivedHabits.length > 0
+              ? "Restaure um hábito arquivado ou crie um novo acima."
+              : "Adicione o primeiro acima e comece a sequência."}
+          </p>
         </div>
       ) : null}
 
       <ul className="habits">
-        {habits.map((habit) => {
-          const streak = currentStreak(habit.checkins);
-          const days = lastSevenDays(habit.checkins);
-          const doneToday = habit.checkins.includes(todayKey());
-          return (
-            <li key={habit.id} className="habit" style={{ borderColor: habit.color }}>
-              <div className="habit__top">
-                <span className="habit__name" style={{ color: habit.color }}>
-                  {habit.name}
-                </span>
-                <button
-                  className="habit__delete"
-                  type="button"
-                  onClick={() => handleDelete(habit)}
-                  aria-label={`Excluir ${habit.name}`}
-                >
-                  Excluir
-                </button>
-              </div>
-
-              <div className="habit__body">
-                <button
-                  type="button"
-                  className={`toggle${doneToday ? " is-done" : ""}`}
-                  style={doneToday ? { backgroundColor: habit.color } : undefined}
-                  onClick={() => handleToggle(habit.id)}
-                  aria-pressed={doneToday}
-                >
-                  {doneToday ? "Feito hoje" : "Marcar hoje"}
-                </button>
-                <div className="streak">
-                  <span className="streak__value">{streak}</span>
-                  <span className="streak__label">
-                    {streak === 1 ? "dia seguido" : "dias seguidos"}
-                  </span>
-                </div>
-              </div>
-
-              <div className="week" aria-label="Últimos 7 dias">
-                {days.map((day) => (
-                  <div key={day.key} className="week__day">
-                    <span
-                      className={`week__dot${day.done ? " is-done" : ""}`}
-                      style={day.done ? { backgroundColor: habit.color } : undefined}
-                      title={day.label}
-                    />
-                    <span className="week__label">{day.label.slice(0, 2)}</span>
-                  </div>
-                ))}
-              </div>
+        {activeHabits.map((habit, index) =>
+          editingId === habit.id ? (
+            <li key={habit.id} className="habit habit--editing">
+              <HabitForm
+                initial={habit}
+                submitLabel="Salvar"
+                onSubmit={(values) => handleEdit(habit.id, values)}
+                onCancel={() => setEditingId(null)}
+              />
             </li>
-          );
-        })}
+          ) : (
+            <HabitCard
+              key={habit.id}
+              habit={habit}
+              isFirst={index === 0}
+              isLast={index === activeHabits.length - 1}
+              onToggle={() => handleToggle(habit.id)}
+              onToggleDate={(key) => handleToggleDate(habit.id, key)}
+              onEdit={() => setEditingId(habit.id)}
+              onDelete={() => setConfirming(habit)}
+              onArchive={() => handleArchive(habit.id)}
+              onMoveUp={() => handleMove(habit.id, -1)}
+              onMoveDown={() => handleMove(habit.id, 1)}
+            />
+          ),
+        )}
       </ul>
+
+      <ArchivedSection
+        habits={archivedHabits}
+        onRestore={handleRestore}
+        onDelete={setConfirming}
+      />
+
+      {confirming ? (
+        <ConfirmDialog
+          title="Excluir hábito"
+          message={`Excluir "${confirming.name}"? Essa ação não pode ser desfeita.`}
+          confirmLabel="Excluir"
+          onConfirm={confirmDelete}
+          onCancel={() => setConfirming(null)}
+        />
+      ) : null}
     </div>
   );
 }
