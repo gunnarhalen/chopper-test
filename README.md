@@ -2,7 +2,10 @@
 
 Quadro Kanban pessoal (estilo Trello mínimo) em um monorepo Yarn workspaces.
 Três colunas — **A fazer**, **Fazendo**, **Feito** — com criação, edição, exclusão
-e movimentação de cartões por arrastar-e-soltar ou pelos botões ←/→.
+e movimentação de cartões por arrastar-e-soltar ou pelos botões de seta.
+Criação/edição de cartões usam uma modal e os ícones são do
+[Tabler Icons](https://tabler.io/icons) (MIT), servidos como sprite em
+`apps/web/public/icons.svg`.
 
 Os dados ficam em um arquivo JSON no servidor (`apps/api/data/board.json`).
 Sem banco de dados, sem login, sem TypeScript/React/Docker.

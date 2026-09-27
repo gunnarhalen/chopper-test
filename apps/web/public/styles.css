@@ -35,30 +35,100 @@ body {
   font-size: 0.85rem;
 }
 
-.new-card {
-  display: grid;
-  grid-template-columns: 1fr 1fr auto auto;
-  gap: 8px;
-  padding: 0 16px 16px;
+.icon {
+  width: 1.1em;
+  height: 1.1em;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-.new-card input,
-.new-card select {
-  padding: 10px;
-  border: 1px solid #dfe1e6;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  background: #fff;
-}
-
-.new-card button {
+.new-card-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 16px 16px;
   padding: 10px 16px;
   border: 0;
   border-radius: 8px;
   background: var(--accent);
   color: #fff;
   font-weight: 600;
+  font-size: 0.95rem;
   cursor: pointer;
+}
+
+.card-modal {
+  width: min(420px, calc(100vw - 32px));
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  color: var(--text);
+  box-shadow: 0 12px 40px rgba(9, 30, 66, 0.3);
+}
+
+.card-modal::backdrop {
+  background: rgba(9, 30, 66, 0.45);
+}
+
+.card-modal form {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+}
+
+.card-modal h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.card-modal label {
+  display: grid;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.card-modal input,
+.card-modal textarea,
+.card-modal select {
+  padding: 10px;
+  border: 1px solid #dfe1e6;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: var(--text);
+  background: #fff;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.modal-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.modal-actions button.ghost {
+  border: 1px solid #dfe1e6;
+  background: transparent;
+  color: var(--muted);
 }
 
 .board {
@@ -138,6 +208,9 @@ body {
 }
 
 .card-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   border: 1px solid #dfe1e6;
   background: #fff;
   border-radius: 6px;
@@ -158,10 +231,6 @@ body {
 }
 
 @media (max-width: 720px) {
-  .new-card {
-    grid-template-columns: 1fr;
-  }
-
   .board {
     flex-direction: column;
   }

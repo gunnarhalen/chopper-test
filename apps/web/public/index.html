@@ -9,28 +9,13 @@
   <body>
     <header class="topbar">
       <h1>Kanban pessoal</h1>
-      <p class="hint">Crie cartões, arraste entre colunas ou use os botões ←/→.</p>
+      <p class="hint">Crie cartões, arraste entre colunas ou use as setas para mover.</p>
     </header>
 
-    <form id="new-card" class="new-card" autocomplete="off">
-      <input
-        id="title"
-        name="title"
-        type="text"
-        placeholder="Título do cartão"
-        maxlength="120"
-        required
-      />
-      <input
-        id="description"
-        name="description"
-        type="text"
-        placeholder="Descrição (opcional)"
-        maxlength="500"
-      />
-      <select id="status" name="status"></select>
-      <button type="submit">Adicionar</button>
-    </form>
+    <button type="button" id="new-card" class="new-card-btn">
+      <svg class="icon" aria-hidden="true"><use href="/icons.svg#ti-plus"></use></svg>
+      Novo cartão
+    </button>
 
     <main id="board" class="board" aria-live="polite"></main>
 
@@ -39,13 +24,48 @@
         <h3 class="card-title"></h3>
         <p class="card-desc"></p>
         <div class="card-actions">
-          <button type="button" data-action="left" title="Mover para a esquerda">←</button>
-          <button type="button" data-action="right" title="Mover para a direita">→</button>
-          <button type="button" data-action="edit">Editar</button>
-          <button type="button" data-action="delete" class="danger">Apagar</button>
+          <button type="button" data-action="left" title="Mover para a esquerda" aria-label="Mover para a esquerda">
+            <svg class="icon" aria-hidden="true"><use href="/icons.svg#ti-arrow-left"></use></svg>
+          </button>
+          <button type="button" data-action="right" title="Mover para a direita" aria-label="Mover para a direita">
+            <svg class="icon" aria-hidden="true"><use href="/icons.svg#ti-arrow-right"></use></svg>
+          </button>
+          <button type="button" data-action="edit" title="Editar">
+            <svg class="icon" aria-hidden="true"><use href="/icons.svg#ti-pencil"></use></svg>
+            Editar
+          </button>
+          <button type="button" data-action="delete" class="danger" title="Apagar">
+            <svg class="icon" aria-hidden="true"><use href="/icons.svg#ti-trash"></use></svg>
+            Apagar
+          </button>
         </div>
       </article>
     </template>
+
+    <dialog id="card-modal" class="card-modal" aria-labelledby="card-modal-title">
+      <form id="card-form" autocomplete="off">
+        <h2 id="card-modal-title">Novo cartão</h2>
+        <label>
+          Título
+          <input id="card-title" name="title" type="text" maxlength="120" required />
+        </label>
+        <label>
+          Descrição
+          <textarea id="card-description" name="description" maxlength="500" rows="3"></textarea>
+        </label>
+        <label>
+          Coluna
+          <select id="card-status" name="status"></select>
+        </label>
+        <div class="modal-actions">
+          <button type="button" id="card-cancel" class="ghost">
+            <svg class="icon" aria-hidden="true"><use href="/icons.svg#ti-x"></use></svg>
+            Cancelar
+          </button>
+          <button type="submit" id="card-save">Salvar</button>
+        </div>
+      </form>
+    </dialog>
 
     <script type="module" src="/app.js"></script>
   </body>

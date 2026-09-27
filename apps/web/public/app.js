@@ -1,20 +1,25 @@
 import { STATUSES, createBoard, createCard } from '/shared.js';
 
 const boardEl = document.getElementById('board');
-const form = document.getElementById('new-card');
-const titleInput = document.getElementById('title');
-const descInput = document.getElementById('description');
-const statusSelect = document.getElementById('status');
 const template = document.getElementById('card-template');
+const newCardBtn = document.getElementById('new-card');
+const modal = document.getElementById('card-modal');
+const modalForm = document.getElementById('card-form');
+const modalTitle = document.getElementById('card-modal-title');
+const titleField = document.getElementById('card-title');
+const descField = document.getElementById('card-description');
+const statusField = document.getElementById('card-status');
+const cancelBtn = document.getElementById('card-cancel');
 
 let board = createBoard();
 let dragId = null;
+let editingId = null;
 
 for (const status of STATUSES) {
   const option = document.createElement('option');
   option.value = status.id;
   option.textContent = status.title;
-  statusSelect.append(option);
+  statusField.append(option);
 }
 
 function indexOfStatus(statusId) {
@@ -53,6 +58,16 @@ function moveCard(id, direction) {
   if (next < 0 || next >= STATUSES.length) return;
   card.status = STATUSES[next].id;
   save();
+}
+
+function openCardModal(card = null) {
+  editingId = card ? card.id : null;
+  modalTitle.textContent = card ? 'Editar cartão' : 'Novo cartão';
+  titleField.value = card ? card.title : '';
+  descField.value = card ? card.description : '';
+  statusField.value = card ? card.status : STATUSES[0].id;
+  modal.showModal();
+  titleField.focus();
 }
 
 function render() {
@@ -119,15 +134,9 @@ function renderCard(card) {
   node.querySelector('[data-action="right"]').addEventListener('click', () =>
     moveCard(card.id, 1),
   );
-  node.querySelector('[data-action="edit"]').addEventListener('click', () => {
-    const title = prompt('Título', card.title);
-    if (title === null || !title.trim()) return;
-    const description = prompt('Descrição', card.description || '');
-    if (description === null) return;
-    card.title = title.trim();
-    card.description = description.trim();
-    save();
-  });
+  node.querySelector('[data-action="edit"]').addEventListener('click', () =>
+    openCardModal(card),
+  );
   node.querySelector('[data-action="delete"]').addEventListener('click', () => {
     if (!confirm(`Apagar "${card.title}"?`)) return;
     update(() => {
@@ -147,18 +156,35 @@ function renderCard(card) {
   return node;
 }
 
-form.addEventListener('submit', (event) => {
+newCardBtn.addEventListener('click', () => openCardModal());
+cancelBtn.addEventListener('click', () => modal.close());
+modal.addEventListener('close', () => {
+  editingId = null;
+  modalForm.reset();
+});
+
+modalForm.addEventListener('submit', (event) => {
   event.preventDefault();
-  const title = titleInput.value.trim();
+  const title = titleField.value.trim();
   if (!title) return;
-  const card = createCard({
-    title,
-    description: descInput.value,
-    status: statusSelect.value,
-  });
-  update(() => board.cards.push(card));
-  form.reset();
-  titleInput.focus();
+  const description = descField.value;
+  const status = statusField.value;
+
+  if (editingId) {
+    const card = board.cards.find((c) => c.id === editingId);
+    if (card) {
+      update(() => {
+        card.title = title;
+        card.description = description.trim();
+        card.status = status;
+      });
+    }
+  } else {
+    const card = createCard({ title, description, status });
+    update(() => board.cards.push(card));
+  }
+
+  modal.close();
 });
 
 load().catch((err) => {

@@ -102,4 +102,14 @@ test('GET / serve o front estático', async () => {
   assert.equal(res.status, 200);
   const html = await res.text();
   assert.match(html, /Kanban/i);
+  assert.match(html, /<dialog/);
+  assert.match(html, /icons\.svg/);
+});
+
+test('GET /icons.svg serve o sprite de ícones Tabler', async () => {
+  const res = await fetch(`${base}/icons.svg`);
+  assert.equal(res.status, 200);
+  assert.equal(res.headers.get('content-type'), 'image/svg+xml');
+  const svg = await res.text();
+  assert.match(svg, /symbol\s+id="ti-arrow-left"/);
 });
