@@ -4,6 +4,9 @@ Quadro Kanban pessoal (estilo Trello mínimo) em um monorepo Yarn workspaces.
 Três colunas — **A fazer**, **Fazendo**, **Feito** — com criação, edição, exclusão
 e movimentação de cartões por arrastar-e-soltar ou pelos botões ←/→.
 
+Novos cartões são criados e editados por uma **modal**, com título, descrição,
+tags (separadas por vírgula) e comentários (um por linha).
+
 Os dados ficam em um arquivo JSON no servidor (`apps/api/data/board.json`).
 Sem banco de dados, sem login, sem TypeScript/React/Docker.
 
@@ -61,10 +64,21 @@ Formato do quadro:
       "title": "Estudar Node",
       "description": "opcional",
       "status": "todo",
+      "tags": ["urgente", "estudo"],
+      "comments": [
+        {
+          "id": "m1",
+          "text": "primeiro comentário",
+          "createdAt": "2024-01-01T00:00:00.000Z"
+        }
+      ],
       "createdAt": "2024-01-01T00:00:00.000Z"
     }
   ]
 }
 ```
 
-`status` é um de `todo`, `doing`, `done`.
+`status` é um de `todo`, `doing`, `done`. `tags` é uma lista de strings
+normalizadas (minúsculas, sem duplicatas) e `comments` é uma lista de objetos
+`{ id, text, createdAt }`. Campos ausentes ou inválidos são normalizados para
+listas vazias.

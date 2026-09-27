@@ -12,25 +12,58 @@
       <p class="hint">Crie cartões, arraste entre colunas ou use os botões ←/→.</p>
     </header>
 
-    <form id="new-card" class="new-card" autocomplete="off">
-      <input
-        id="title"
-        name="title"
-        type="text"
-        placeholder="Título do cartão"
-        maxlength="120"
-        required
-      />
-      <input
-        id="description"
-        name="description"
-        type="text"
-        placeholder="Descrição (opcional)"
-        maxlength="500"
-      />
-      <select id="status" name="status"></select>
-      <button type="submit">Adicionar</button>
-    </form>
+    <div class="toolbar">
+      <button id="open-card-modal" type="button" class="primary">+ Novo cartão</button>
+    </div>
+
+    <dialog id="card-modal" class="card-modal">
+      <form id="card-form" autocomplete="off">
+        <h2 id="card-modal-title">Novo cartão</h2>
+
+        <label for="title">Título</label>
+        <input
+          id="title"
+          name="title"
+          type="text"
+          placeholder="Título do cartão"
+          maxlength="120"
+          required
+        />
+
+        <label for="description">Descrição</label>
+        <textarea
+          id="description"
+          name="description"
+          placeholder="Descrição (opcional)"
+          maxlength="500"
+          rows="3"
+        ></textarea>
+
+        <label for="tags">Tags</label>
+        <input
+          id="tags"
+          name="tags"
+          type="text"
+          placeholder="Separe por vírgula (ex.: urgente, estudo)"
+        />
+
+        <label for="comments">Comentários</label>
+        <textarea
+          id="comments"
+          name="comments"
+          placeholder="Um comentário por linha"
+          rows="3"
+        ></textarea>
+
+        <label for="status">Coluna</label>
+        <select id="status" name="status"></select>
+
+        <menu class="card-modal-actions">
+          <button type="button" data-action="cancel">Cancelar</button>
+          <button type="submit" class="primary">Salvar</button>
+        </menu>
+      </form>
+    </dialog>
 
     <main id="board" class="board" aria-live="polite"></main>
 
@@ -38,6 +71,8 @@
       <article class="card" draggable="true">
         <h3 class="card-title"></h3>
         <p class="card-desc"></p>
+        <ul class="card-tags"></ul>
+        <ul class="card-comments"></ul>
         <div class="card-actions">
           <button type="button" data-action="left" title="Mover para a esquerda">←</button>
           <button type="button" data-action="right" title="Mover para a direita">→</button>

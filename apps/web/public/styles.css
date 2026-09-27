@@ -35,23 +35,11 @@ body {
   font-size: 0.85rem;
 }
 
-.new-card {
-  display: grid;
-  grid-template-columns: 1fr 1fr auto auto;
-  gap: 8px;
+.toolbar {
   padding: 0 16px 16px;
 }
 
-.new-card input,
-.new-card select {
-  padding: 10px;
-  border: 1px solid #dfe1e6;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  background: #fff;
-}
-
-.new-card button {
+.toolbar .primary {
   padding: 10px 16px;
   border: 0;
   border-radius: 8px;
@@ -59,6 +47,81 @@ body {
   color: #fff;
   font-weight: 600;
   cursor: pointer;
+}
+
+.card-modal {
+  width: min(480px, calc(100vw - 32px));
+  border: 0;
+  border-radius: var(--radius);
+  padding: 0;
+  box-shadow: 0 8px 24px rgba(9, 30, 66, 0.3);
+  color: var(--text);
+}
+
+.card-modal::backdrop {
+  background: rgba(9, 30, 66, 0.45);
+}
+
+.card-modal form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 20px;
+}
+
+.card-modal h2 {
+  margin: 0 0 8px;
+  font-size: 1.1rem;
+}
+
+.card-modal label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.card-modal input,
+.card-modal select,
+.card-modal textarea {
+  padding: 10px;
+  border: 1px solid #dfe1e6;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  background: #fff;
+  color: var(--text);
+  resize: vertical;
+}
+
+.card-modal input:focus,
+.card-modal select:focus,
+.card-modal textarea:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.card-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.card-modal-actions button {
+  padding: 10px 16px;
+  border: 1px solid #dfe1e6;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.card-modal-actions button.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
 }
 
 .board {
@@ -131,6 +194,56 @@ body {
   display: none;
 }
 
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+}
+
+.card-tags:empty {
+  display: none;
+}
+
+.card-tags .tag {
+  background: #e6f2fb;
+  color: var(--accent);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.card-comments {
+  margin: 0 0 8px;
+  padding: 0 0 0 2px;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.card-comments:empty {
+  display: none;
+}
+
+.card-comments .comment {
+  font-size: 0.78rem;
+  color: var(--muted);
+  padding-left: 14px;
+  position: relative;
+  word-break: break-word;
+}
+
+.card-comments .comment::before {
+  content: "•";
+  position: absolute;
+  left: 2px;
+}
+
 .card-actions {
   display: flex;
   flex-wrap: wrap;
@@ -158,10 +271,6 @@ body {
 }
 
 @media (max-width: 720px) {
-  .new-card {
-    grid-template-columns: 1fr;
-  }
-
   .board {
     flex-direction: column;
   }

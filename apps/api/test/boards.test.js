@@ -79,6 +79,71 @@ test('PUT normaliza status inválido e descarta cartões sem título', async () 
   assert.ok(STATUSES.some((s) => s.id === board.cards[0].status));
 });
 
+test('PUT /api/boards preserva tags e comentários no round-trip', async () => {
+  const payload = {
+    cards: [
+      {
+        id: 'c2',
+        title: 'Com tags',
+        description: 'detalhe',
+        status: 'todo',
+        createdAt: '2024-01-01T00:00:00.000Z',
+        tags: ['urgente', 'estudo'],
+        comments: [
+          { id: 'm1', text: 'primeiro', createdAt: '2024-02-01T00:00:00.000Z' },
+        ],
+      },
+    ],
+  };
+
+  const put = await fetch(`${base}/api/boards`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  assert.equal(put.status, 200);
+  const saved = await put.json();
+  assert.deepEqual(saved.cards[0].tags, ['urgente', 'estudo']);
+  assert.equal(saved.cards[0].comments.length, 1);
+  assert.equal(saved.cards[0].comments[0].text, 'primeiro');
+  assert.equal(saved.cards[0].comments[0].id, 'm1');
+
+  const get = await fetch(`${base}/api/boards`);
+  const board = await get.json();
+  assert.deepEqual(board, saved);
+});
+
+test('PUT normaliza tags e comentários inválidos', async () => {
+  const put = await fetch(`${base}/api/boards`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      cards: [
+        {
+          id: 'c3',
+          title: 'Normalizar',
+          tags: 'não é array',
+          comments: [
+            'linha de texto',
+            { text: '  objeto válido  ' },
+            { text: '   ' },
+            null,
+          ],
+        },
+      ],
+    }),
+  });
+  assert.equal(put.status, 200);
+  const board = await put.json();
+  const card = board.cards[0];
+  assert.deepEqual(card.tags, []);
+  assert.equal(card.comments.length, 2);
+  assert.equal(card.comments[0].text, 'linha de texto');
+  assert.equal(card.comments[1].text, 'objeto válido');
+  assert.ok(card.comments[0].id);
+  assert.ok(card.comments[0].createdAt);
+});
+
 test('PUT /api/boards rejeita payload inválido com 400', async () => {
   const res = await fetch(`${base}/api/boards`, {
     method: 'PUT',
