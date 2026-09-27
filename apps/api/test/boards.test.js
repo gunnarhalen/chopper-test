@@ -29,7 +29,14 @@ test('GET /api/boards retorna quadro vazio quando não existe arquivo', async ()
   const res = await fetch(`${base}/api/boards`);
   assert.equal(res.status, 200);
   const board = await res.json();
-  assert.deepEqual(board, { cards: [] });
+  assert.deepEqual(board, {
+    columns: [
+      { id: 'todo', title: 'A fazer' },
+      { id: 'doing', title: 'Fazendo' },
+      { id: 'done', title: 'Feito' },
+    ],
+    cards: [],
+  });
 });
 
 test('PUT /api/boards salva e GET subsequente reflete o estado', async () => {
@@ -142,6 +149,57 @@ test('PUT normaliza tags e comentários inválidos', async () => {
   assert.equal(card.comments[1].text, 'objeto válido');
   assert.ok(card.comments[0].id);
   assert.ok(card.comments[0].createdAt);
+});
+
+test('PUT /api/boards preserva colunas customizadas e o status do cartão', async () => {
+  const payload = {
+    columns: [
+      { id: 'backlog', title: 'Backlog' },
+      { id: 'ship', title: 'Entregue' },
+    ],
+    cards: [
+      { id: 'x1', title: 'Custom', status: 'ship' },
+      { id: 'x2', title: 'Sem status' },
+    ],
+  };
+
+  const put = await fetch(`${base}/api/boards`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  assert.equal(put.status, 200);
+  const saved = await put.json();
+  assert.deepEqual(saved.columns, payload.columns);
+  assert.equal(saved.cards.length, 2);
+  assert.equal(saved.cards[0].status, 'ship');
+  assert.equal(saved.cards[1].status, 'backlog');
+
+  const get = await fetch(`${base}/api/boards`);
+  const board = await get.json();
+  assert.deepEqual(board, saved);
+});
+
+test('PUT normaliza colunas inválidas e descarta colunas sem título', async () => {
+  const put = await fetch(`${base}/api/boards`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      columns: [
+        { id: 'ok', title: '  Válida  ' },
+        { id: 'dup', title: 'Primeira' },
+        { id: 'dup', title: 'Duplicada' },
+        { title: '   ' },
+        null,
+      ],
+      cards: [],
+    }),
+  });
+  assert.equal(put.status, 200);
+  const board = await put.json();
+  assert.equal(board.columns.length, 3);
+  assert.equal(board.columns[0].title, 'Válida');
+  assert.notEqual(board.columns[1].id, board.columns[2].id);
 });
 
 test('PUT /api/boards rejeita payload inválido com 400', async () => {

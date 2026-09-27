@@ -14,6 +14,7 @@
 
     <div class="toolbar">
       <button id="open-card-modal" type="button" class="primary">+ Novo cartão</button>
+      <button id="add-column" type="button">+ Nova coluna</button>
     </div>
 
     <dialog id="card-modal" class="card-modal">
@@ -59,6 +60,7 @@
         <select id="status" name="status"></select>
 
         <menu class="card-modal-actions">
+          <button type="button" data-action="delete-card" class="danger" hidden>Apagar</button>
           <button type="button" data-action="cancel">Cancelar</button>
           <button type="submit" class="primary">Salvar</button>
         </menu>
@@ -68,7 +70,7 @@
     <main id="board" class="board" aria-live="polite"></main>
 
     <template id="card-template">
-      <article class="card" draggable="true">
+      <article class="card" draggable="true" role="button" tabindex="0">
         <h3 class="card-title"></h3>
         <p class="card-desc"></p>
         <ul class="card-tags"></ul>
@@ -76,8 +78,6 @@
         <div class="card-actions">
           <button type="button" data-action="left" title="Mover para a esquerda">←</button>
           <button type="button" data-action="right" title="Mover para a direita">→</button>
-          <button type="button" data-action="edit">Editar</button>
-          <button type="button" data-action="delete" class="danger">Apagar</button>
         </div>
       </article>
     </template>

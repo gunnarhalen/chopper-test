@@ -4,10 +4,37 @@ export const STATUSES = [
   { id: 'done', title: 'Feito' },
 ];
 
-const STATUS_IDS = STATUSES.map((s) => s.id);
+export function defaultColumns() {
+  return STATUSES.map((s) => ({ ...s }));
+}
+
+export function createColumn({ title } = {}) {
+  const clean = String(title ?? '').trim();
+  return { id: randomId(), title: clean || 'Nova coluna' };
+}
+
+export function normalizeColumns(input) {
+  if (!Array.isArray(input)) return null;
+
+  const columns = [];
+  const ids = new Set();
+
+  for (const raw of input) {
+    if (!raw || typeof raw !== 'object') continue;
+    const title = String(raw.title ?? '').trim();
+    if (!title) continue;
+
+    let id = typeof raw.id === 'string' && raw.id ? raw.id : randomId();
+    if (ids.has(id)) id = randomId();
+    ids.add(id);
+    columns.push({ id, title });
+  }
+
+  return columns.length ? columns : null;
+}
 
 export function createBoard() {
-  return { cards: [] };
+  return { columns: defaultColumns(), cards: [] };
 }
 
 export function createCard({
@@ -21,7 +48,7 @@ export function createCard({
     id: randomId(),
     title: String(title ?? '').trim(),
     description: String(description ?? '').trim(),
-    status: STATUS_IDS.includes(status) ? status : 'todo',
+    status: typeof status === 'string' && status ? status : 'todo',
     tags: normalizeTags(tags),
     comments: normalizeComments(comments),
     createdAt: new Date().toISOString(),
@@ -72,6 +99,9 @@ export function normalizeBoard(input) {
     return null;
   }
 
+  const columns = normalizeColumns(input.columns) || defaultColumns();
+  const columnIds = columns.map((c) => c.id);
+
   const cards = [];
   for (const raw of input.cards) {
     if (!raw || typeof raw !== 'object') continue;
@@ -82,7 +112,7 @@ export function normalizeBoard(input) {
       id: typeof raw.id === 'string' && raw.id ? raw.id : randomId(),
       title,
       description: String(raw.description ?? '').trim(),
-      status: STATUS_IDS.includes(raw.status) ? raw.status : 'todo',
+      status: columnIds.includes(raw.status) ? raw.status : columnIds[0],
       tags: normalizeTags(raw.tags),
       comments: normalizeComments(raw.comments),
       createdAt:
@@ -92,7 +122,7 @@ export function normalizeBoard(input) {
     });
   }
 
-  return { cards };
+  return { columns, cards };
 }
 
 export function randomId() {

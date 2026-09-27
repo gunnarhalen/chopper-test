@@ -1,7 +1,7 @@
 import {
-  STATUSES,
   createBoard,
   createCard,
+  createColumn,
   normalizeTags,
   randomId,
 } from '/shared.js';
@@ -17,25 +17,33 @@ const tagsInput = document.getElementById('tags');
 const commentsInput = document.getElementById('comments');
 const statusSelect = document.getElementById('status');
 const template = document.getElementById('card-template');
+const addColumnButton = document.getElementById('add-column');
+const deleteCardButton = document.querySelector('[data-action="delete-card"]');
 
 let board = createBoard();
 let dragId = null;
 let editingId = null;
 
-for (const status of STATUSES) {
-  const option = document.createElement('option');
-  option.value = status.id;
-  option.textContent = status.title;
-  statusSelect.append(option);
+function indexOfStatus(statusId) {
+  return board.columns.findIndex((c) => c.id === statusId);
 }
 
-function indexOfStatus(statusId) {
-  return STATUSES.findIndex((s) => s.id === statusId);
+function renderStatusOptions() {
+  statusSelect.replaceChildren();
+  for (const column of board.columns) {
+    const option = document.createElement('option');
+    option.value = column.id;
+    option.textContent = column.title;
+    statusSelect.append(option);
+  }
 }
 
 async function load() {
   const res = await fetch('/api/boards');
   board = await res.json();
+  if (!Array.isArray(board.columns) || board.columns.length === 0) {
+    board.columns = createBoard().columns;
+  }
   render();
 }
 
@@ -62,19 +70,21 @@ function moveCard(id, direction) {
   const card = board.cards.find((c) => c.id === id);
   if (!card) return;
   const next = indexOfStatus(card.status) + direction;
-  if (next < 0 || next >= STATUSES.length) return;
-  card.status = STATUSES[next].id;
+  if (next < 0 || next >= board.columns.length) return;
+  card.status = board.columns[next].id;
   save();
 }
 
-function openModal(card = null) {
+function openModal(card = null, columnId = null) {
   editingId = card ? card.id : null;
   modalTitle.textContent = card ? 'Editar cartão' : 'Novo cartão';
   titleInput.value = card ? card.title : '';
   descInput.value = card ? card.description || '' : '';
   tagsInput.value = card ? (card.tags || []).join(', ') : '';
   commentsInput.value = card ? (card.comments || []).map((c) => c.text).join('\n') : '';
-  statusSelect.value = card ? card.status : STATUSES[0].id;
+  renderStatusOptions();
+  statusSelect.value = columnId || (card ? card.status : board.columns[0].id);
+  deleteCardButton.hidden = !card;
   modal.showModal();
   titleInput.focus();
 }
@@ -106,13 +116,17 @@ function commentsFromLines(lines, existing = []) {
 
 function render() {
   boardEl.replaceChildren();
+  renderStatusOptions();
 
-  for (const status of STATUSES) {
+  for (const status of board.columns) {
     const cards = board.cards.filter((c) => c.status === status.id);
 
     const column = document.createElement('section');
     column.className = 'column';
     column.dataset.status = status.id;
+
+    const header = document.createElement('div');
+    header.className = 'column-header';
 
     const heading = document.createElement('h2');
     heading.textContent = status.title;
@@ -120,7 +134,50 @@ function render() {
     count.className = 'count';
     count.textContent = ` (${cards.length})`;
     heading.append(count);
-    column.append(heading);
+
+    const actions = document.createElement('div');
+    actions.className = 'column-actions';
+
+    const addCard = document.createElement('button');
+    addCard.type = 'button';
+    addCard.className = 'icon';
+    addCard.title = 'Novo cartão nesta coluna';
+    addCard.textContent = '+';
+    addCard.addEventListener('click', () => openModal(null, status.id));
+
+    const rename = document.createElement('button');
+    rename.type = 'button';
+    rename.className = 'icon';
+    rename.title = 'Renomear coluna';
+    rename.textContent = '✎';
+    rename.addEventListener('click', () => {
+      const next = prompt('Nome da coluna', status.title);
+      if (next === null) return;
+      const title = next.trim();
+      if (!title) return;
+      update(() => {
+        status.title = title;
+      });
+    });
+
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'icon danger';
+    remove.title = 'Excluir coluna';
+    remove.textContent = '×';
+    remove.disabled = board.columns.length <= 1;
+    remove.addEventListener('click', () => {
+      if (board.columns.length <= 1) return;
+      if (!confirm(`Excluir a coluna "${status.title}" e seus cartões?`)) return;
+      update(() => {
+        board.columns = board.columns.filter((c) => c.id !== status.id);
+        board.cards = board.cards.filter((c) => c.status !== status.id);
+      });
+    });
+
+    actions.append(addCard, rename, remove);
+    header.append(heading, actions);
+    column.append(header);
 
     const list = document.createElement('div');
     list.className = 'cards';
@@ -176,22 +233,26 @@ function renderCard(card) {
   }
 
   node.querySelector('[data-action="left"]').disabled = index === 0;
-  node.querySelector('[data-action="right"]').disabled = index === STATUSES.length - 1;
+  node.querySelector('[data-action="right"]').disabled = index === board.columns.length - 1;
 
-  node.querySelector('[data-action="left"]').addEventListener('click', () =>
-    moveCard(card.id, -1),
-  );
-  node.querySelector('[data-action="right"]').addEventListener('click', () =>
-    moveCard(card.id, 1),
-  );
-  node.querySelector('[data-action="edit"]').addEventListener('click', () =>
-    openModal(card),
-  );
-  node.querySelector('[data-action="delete"]').addEventListener('click', () => {
-    if (!confirm(`Apagar "${card.title}"?`)) return;
-    update(() => {
-      board.cards = board.cards.filter((c) => c.id !== card.id);
-    });
+  node.querySelector('[data-action="left"]').addEventListener('click', (event) => {
+    event.stopPropagation();
+    moveCard(card.id, -1);
+  });
+  node.querySelector('[data-action="right"]').addEventListener('click', (event) => {
+    event.stopPropagation();
+    moveCard(card.id, 1);
+  });
+
+  node.addEventListener('click', (event) => {
+    if (event.target.closest('button')) return;
+    openModal(card);
+  });
+  node.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    if (event.target.closest('button')) return;
+    event.preventDefault();
+    openModal(card);
   });
 
   node.addEventListener('dragstart', () => {
@@ -207,6 +268,25 @@ function renderCard(card) {
 }
 
 openModalButton.addEventListener('click', () => openModal());
+addColumnButton.addEventListener('click', () => {
+  const next = prompt('Nome da nova coluna');
+  if (next === null) return;
+  const title = next.trim();
+  if (!title) return;
+  update(() => {
+    board.columns.push(createColumn({ title }));
+  });
+});
+deleteCardButton.addEventListener('click', () => {
+  if (!editingId) return;
+  const card = board.cards.find((c) => c.id === editingId);
+  if (!card) return;
+  if (!confirm(`Apagar "${card.title}"?`)) return;
+  update(() => {
+    board.cards = board.cards.filter((c) => c.id !== editingId);
+  });
+  closeModal();
+});
 cardForm.querySelector('[data-action="cancel"]').addEventListener('click', closeModal);
 modal.addEventListener('click', (event) => {
   if (event.target === modal) closeModal();
@@ -227,7 +307,7 @@ cardForm.addEventListener('submit', (event) => {
     if (card) {
       card.title = title;
       card.description = String(description ?? '').trim();
-      card.status = STATUSES.some((s) => s.id === status) ? status : card.status;
+      card.status = board.columns.some((c) => c.id === status) ? status : card.status;
       card.tags = tags;
       card.comments = commentsFromLines(lines, card.comments || []);
     }
