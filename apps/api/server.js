@@ -1,5 +1,5 @@
 import http from 'node:http';
-import { readFile } from 'node:fs/promises';
+import { access, readFile } from 'node:fs/promises';
 import { dirname, extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createBoard, normalizeBoard } from '@kanban/shared';
@@ -62,6 +62,15 @@ async function sendFile(res, target) {
   }
 }
 
+async function hasFront() {
+  try {
+    await access(join(WEB_ROOT, 'index.html'));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function serveStatic(req, res, urlPath) {
   const rel = normalize(decodeURIComponent(urlPath)).replace(/^(\.\.[/\\])+/, '');
   const target = resolve(WEB_ROOT, '.' + (rel === '/' ? '/index.html' : rel));
@@ -74,6 +83,14 @@ async function serveStatic(req, res, urlPath) {
   if (await sendFile(res, target)) return;
 
   if (!extname(target) && (await sendFile(res, join(WEB_ROOT, 'index.html')))) {
+    return;
+  }
+
+  if (!(await hasFront())) {
+    sendJson(res, 503, {
+      error: 'front not built',
+      hint: `Build do front não encontrado em ${WEB_ROOT}. Rode "yarn build" (ou apenas "yarn start", que já builda) para gerá-lo.`,
+    });
     return;
   }
 
@@ -144,7 +161,12 @@ const isMain =
 
 if (isMain) {
   const port = Number(process.env.PORT) || 3000;
-  createServer().listen(port, () => {
+  createServer().listen(port, async () => {
     console.log(`Kanban rodando em http://localhost:${port}`);
+    if (!(await hasFront())) {
+      console.warn(
+        `Aviso: front não encontrado em ${WEB_ROOT}. Rode "yarn build" para gerar o build.`,
+      );
+    }
   });
 }

@@ -9,6 +9,7 @@
   ],
   "scripts": {
     "build": "yarn workspace @kanban/web build",
+    "prestart": "yarn build",
     "start": "yarn workspace @kanban/api start",
     "test": "yarn build && yarn workspace @kanban/api test"
   },

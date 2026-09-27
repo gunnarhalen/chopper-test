@@ -26,11 +26,15 @@ packages/shared   shapes/constantes compartilhados (status, cartão, quadro)
 ## Rodando localmente
 
 ```bash
-yarn && yarn build && yarn start
+yarn && yarn start
 ```
 
-Abra http://localhost:3000. A API serve o front (build do Vite em
-`apps/web/dist`) e persiste o quadro em `apps/api/data/board.json`.
+Abra http://localhost:3000. O `start` gera o build do front automaticamente
+(script `prestart`) e a API serve o resultado do Vite em `apps/web/dist`,
+persistindo o quadro em `apps/api/data/board.json`.
+
+Se o build estiver ausente, a API responde `503` com a instrução para rodar
+`yarn build` em vez de um `404` genérico.
 
 Para desenvolver o front com hot-reload, rode a API (`yarn start`) e, em outro
 terminal, o dev server do Vite:
