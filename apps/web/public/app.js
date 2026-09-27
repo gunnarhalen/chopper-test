@@ -1,14 +1,33 @@
 import { STATUSES, createBoard, createCard } from '/shared.js';
 
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const SPRITE = '/icons/tabler-sprite.svg';
+
 const boardEl = document.getElementById('board');
-const form = document.getElementById('new-card');
-const titleInput = document.getElementById('title');
-const descInput = document.getElementById('description');
-const statusSelect = document.getElementById('status');
 const template = document.getElementById('card-template');
+const newCardBtn = document.getElementById('new-card-btn');
+
+const cardModal = document.getElementById('card-modal');
+const cardForm = document.getElementById('card-form');
+const cardModalTitle = document.getElementById('card-modal-title');
+const titleInput = document.getElementById('card-title');
+const descInput = document.getElementById('card-description');
+const statusSelect = document.getElementById('card-status');
 
 let board = createBoard();
 let dragId = null;
+let editingId = null;
+
+function makeIcon(name) {
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('class', 'icon');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+  const use = document.createElementNS(SVG_NS, 'use');
+  use.setAttribute('href', `${SPRITE}#tabler-${name}`);
+  svg.append(use);
+  return svg;
+}
 
 for (const status of STATUSES) {
   const option = document.createElement('option');
@@ -110,25 +129,23 @@ function renderCard(card) {
   node.querySelector('.card-title').textContent = card.title;
   node.querySelector('.card-desc').textContent = card.description || '';
 
-  node.querySelector('[data-action="left"]').disabled = index === 0;
-  node.querySelector('[data-action="right"]').disabled = index === STATUSES.length - 1;
+  const leftBtn = node.querySelector('[data-action="left"]');
+  const rightBtn = node.querySelector('[data-action="right"]');
+  const editBtn = node.querySelector('[data-action="edit"]');
+  const deleteBtn = node.querySelector('[data-action="delete"]');
 
-  node.querySelector('[data-action="left"]').addEventListener('click', () =>
-    moveCard(card.id, -1),
-  );
-  node.querySelector('[data-action="right"]').addEventListener('click', () =>
-    moveCard(card.id, 1),
-  );
-  node.querySelector('[data-action="edit"]').addEventListener('click', () => {
-    const title = prompt('Título', card.title);
-    if (title === null || !title.trim()) return;
-    const description = prompt('Descrição', card.description || '');
-    if (description === null) return;
-    card.title = title.trim();
-    card.description = description.trim();
-    save();
-  });
-  node.querySelector('[data-action="delete"]').addEventListener('click', () => {
+  leftBtn.append(makeIcon('arrow-left'));
+  rightBtn.append(makeIcon('arrow-right'));
+  editBtn.append(makeIcon('pencil'), ' Editar');
+  deleteBtn.append(makeIcon('trash'), ' Apagar');
+
+  leftBtn.disabled = index === 0;
+  rightBtn.disabled = index === STATUSES.length - 1;
+
+  leftBtn.addEventListener('click', () => moveCard(card.id, -1));
+  rightBtn.addEventListener('click', () => moveCard(card.id, 1));
+  editBtn.addEventListener('click', () => openCardModal(card));
+  deleteBtn.addEventListener('click', () => {
     if (!confirm(`Apagar "${card.title}"?`)) return;
     update(() => {
       board.cards = board.cards.filter((c) => c.id !== card.id);
@@ -147,18 +164,50 @@ function renderCard(card) {
   return node;
 }
 
-form.addEventListener('submit', (event) => {
+function openCardModal(card = null) {
+  editingId = card ? card.id : null;
+  cardModalTitle.textContent = card ? 'Editar cartão' : 'Novo cartão';
+  titleInput.value = card ? card.title : '';
+  descInput.value = card ? card.description || '' : '';
+  statusSelect.value = card ? card.status : STATUSES[0].id;
+  cardModal.showModal();
+  titleInput.focus();
+}
+
+newCardBtn.addEventListener('click', () => openCardModal());
+
+for (const btn of cardModal.querySelectorAll('[data-action="close"]')) {
+  btn.addEventListener('click', () => cardModal.close());
+}
+
+cardModal.addEventListener('click', (event) => {
+  if (event.target === cardModal) cardModal.close();
+});
+
+cardForm.addEventListener('submit', (event) => {
   event.preventDefault();
   const title = titleInput.value.trim();
-  if (!title) return;
-  const card = createCard({
-    title,
-    description: descInput.value,
-    status: statusSelect.value,
-  });
-  update(() => board.cards.push(card));
-  form.reset();
-  titleInput.focus();
+  if (!title) {
+    titleInput.focus();
+    return;
+  }
+  const description = descInput.value.trim();
+  const status = statusSelect.value;
+
+  if (editingId) {
+    const card = board.cards.find((c) => c.id === editingId);
+    if (card) {
+      card.title = title;
+      card.description = description;
+      card.status = status;
+    }
+  } else {
+    board.cards.push(createCard({ title, description, status }));
+  }
+
+  editingId = null;
+  cardModal.close();
+  save();
 });
 
 load().catch((err) => {

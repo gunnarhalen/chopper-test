@@ -8,29 +8,17 @@
   </head>
   <body>
     <header class="topbar">
-      <h1>Kanban pessoal</h1>
-      <p class="hint">Crie cartões, arraste entre colunas ou use os botões ←/→.</p>
+      <div class="topbar-text">
+        <h1>Kanban pessoal</h1>
+        <p class="hint">Crie cartões, arraste entre colunas ou use os botões de seta.</p>
+      </div>
+      <button type="button" id="new-card-btn" class="btn primary">
+        <svg class="icon" aria-hidden="true" focusable="false">
+          <use href="/icons/tabler-sprite.svg#tabler-plus"></use>
+        </svg>
+        Adicionar cartão
+      </button>
     </header>
-
-    <form id="new-card" class="new-card" autocomplete="off">
-      <input
-        id="title"
-        name="title"
-        type="text"
-        placeholder="Título do cartão"
-        maxlength="120"
-        required
-      />
-      <input
-        id="description"
-        name="description"
-        type="text"
-        placeholder="Descrição (opcional)"
-        maxlength="500"
-      />
-      <select id="status" name="status"></select>
-      <button type="submit">Adicionar</button>
-    </form>
 
     <main id="board" class="board" aria-live="polite"></main>
 
@@ -39,13 +27,69 @@
         <h3 class="card-title"></h3>
         <p class="card-desc"></p>
         <div class="card-actions">
-          <button type="button" data-action="left" title="Mover para a esquerda">←</button>
-          <button type="button" data-action="right" title="Mover para a direita">→</button>
-          <button type="button" data-action="edit">Editar</button>
-          <button type="button" data-action="delete" class="danger">Apagar</button>
+          <button
+            type="button"
+            data-action="left"
+            class="icon-btn"
+            title="Mover para a esquerda"
+            aria-label="Mover para a esquerda"
+          ></button>
+          <button
+            type="button"
+            data-action="right"
+            class="icon-btn"
+            title="Mover para a direita"
+            aria-label="Mover para a direita"
+          ></button>
+          <button type="button" data-action="edit"></button>
+          <button type="button" data-action="delete" class="danger"></button>
         </div>
       </article>
     </template>
+
+    <dialog id="card-modal" class="modal" aria-labelledby="card-modal-title">
+      <form id="card-form" method="dialog" autocomplete="off">
+        <header class="modal-header">
+          <h2 id="card-modal-title">Novo cartão</h2>
+          <button
+            type="button"
+            class="modal-close"
+            data-action="close"
+            title="Fechar"
+            aria-label="Fechar"
+          >
+            <svg class="icon" aria-hidden="true" focusable="false">
+              <use href="/icons/tabler-sprite.svg#tabler-x"></use>
+            </svg>
+          </button>
+        </header>
+
+        <label class="field">
+          <span>Título</span>
+          <input id="card-title" name="title" type="text" maxlength="120" required />
+        </label>
+
+        <label class="field">
+          <span>Descrição</span>
+          <input id="card-description" name="description" type="text" maxlength="500" />
+        </label>
+
+        <label class="field">
+          <span>Coluna</span>
+          <select id="card-status" name="status"></select>
+        </label>
+
+        <footer class="modal-footer">
+          <button type="button" data-action="close">Cancelar</button>
+          <button type="submit" class="primary">
+            <svg class="icon" aria-hidden="true" focusable="false">
+              <use href="/icons/tabler-sprite.svg#tabler-check"></use>
+            </svg>
+            Salvar
+          </button>
+        </footer>
+      </form>
+    </dialog>
 
     <script type="module" src="/app.js"></script>
   </body>

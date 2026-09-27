@@ -21,6 +21,10 @@ body {
 }
 
 .topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   padding: 16px;
 }
 
@@ -35,30 +39,38 @@ body {
   font-size: 0.85rem;
 }
 
-.new-card {
-  display: grid;
-  grid-template-columns: 1fr 1fr auto auto;
-  gap: 8px;
-  padding: 0 16px 16px;
+.icon {
+  width: 1em;
+  height: 1em;
+  flex: none;
+  vertical-align: -0.15em;
 }
 
-.new-card input,
-.new-card select {
-  padding: 10px;
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
   border: 1px solid #dfe1e6;
   border-radius: 8px;
-  font-size: 0.95rem;
   background: #fff;
-}
-
-.new-card button {
-  padding: 10px 16px;
-  border: 0;
-  border-radius: 8px;
-  background: var(--accent);
-  color: #fff;
+  color: var(--text);
+  font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
+}
+
+.btn.primary {
+  border-color: transparent;
+  background: var(--accent);
+  color: #fff;
 }
 
 .board {
@@ -138,6 +150,9 @@ body {
 }
 
 .card-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   border: 1px solid #dfe1e6;
   background: #fff;
   border-radius: 6px;
@@ -157,9 +172,106 @@ body {
   cursor: default;
 }
 
+.modal {
+  width: min(440px, calc(100vw - 32px));
+  border: 0;
+  border-radius: 12px;
+  padding: 0;
+  color: var(--text);
+  box-shadow: 0 12px 40px rgba(9, 30, 66, 0.3);
+}
+
+.modal::backdrop {
+  background: rgba(9, 30, 66, 0.45);
+}
+
+.modal form {
+  padding: 16px;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.modal-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.modal-close:hover {
+  background: var(--col);
+}
+
+.field {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.field span {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.field input,
+.field select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #dfe1e6;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  background: #fff;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.modal-footer button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: 1px solid #dfe1e6;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.modal-footer button.primary {
+  border-color: transparent;
+  background: var(--accent);
+  color: #fff;
+}
+
 @media (max-width: 720px) {
-  .new-card {
-    grid-template-columns: 1fr;
+  .topbar {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .board {
