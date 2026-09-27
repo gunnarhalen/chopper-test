@@ -1,0 +1,14 @@
+{
+  "name": "habits-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "prestart": "yarn workspace @habits/web build",
+    "start": "yarn workspace @habits/api start",
+    "test": "yarn workspace @habits/api test"
+  }
+}

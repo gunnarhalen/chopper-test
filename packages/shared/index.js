@@ -1,0 +1,131 @@
+export const COLORS = [
+  "#38bdf8",
+  "#a78bfa",
+  "#f472b6",
+  "#facc15",
+  "#34d399",
+  "#fb7185",
+];
+
+export const DATE_FORMAT = "YYYY-MM-DD";
+
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+export function randomId() {
+  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+}
+
+export function dateKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+export function todayKey(now = new Date()) {
+  return dateKey(now);
+}
+
+export function formatDisplay(key) {
+  const parts = String(key).split("-");
+  if (parts.length !== 3) return String(key);
+  const [year, month, day] = parts;
+  return `${day}-${month}-${year}`;
+}
+
+export function isValidDateKey(value) {
+  if (typeof value !== "string" || !DATE_PATTERN.test(value)) return false;
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  return (
+    date.getFullYear() === year &&
+    date.getMonth() === month - 1 &&
+    date.getDate() === day
+  );
+}
+
+function addDays(date, days) {
+  const next = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+export function currentStreak(checkins = [], now = new Date()) {
+  const done = new Set(checkins);
+  let cursor = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (!done.has(dateKey(cursor))) {
+    cursor = addDays(cursor, -1);
+  }
+  let streak = 0;
+  while (done.has(dateKey(cursor))) {
+    streak += 1;
+    cursor = addDays(cursor, -1);
+  }
+  return streak;
+}
+
+export function lastSevenDays(checkins = [], now = new Date()) {
+  const done = new Set(checkins);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const days = [];
+  for (let offset = 6; offset >= 0; offset -= 1) {
+    const key = dateKey(addDays(today, -offset));
+    days.push({ key, label: formatDisplay(key), done: done.has(key) });
+  }
+  return days;
+}
+
+export function normalizeHabit(habit, index = 0) {
+  if (!habit || typeof habit !== "object" || Array.isArray(habit)) {
+    throw new Error(`habit ${index} must be an object`);
+  }
+  const name = typeof habit.name === "string" ? habit.name.trim() : "";
+  if (!name) {
+    throw new Error(`habit ${index} needs a name`);
+  }
+  const color =
+    habit.color === undefined || habit.color === "" ? COLORS[0] : habit.color;
+  if (typeof color !== "string" || !COLORS.includes(color)) {
+    throw new Error(`habit ${index} has an invalid color`);
+  }
+  const id =
+    typeof habit.id === "string" && habit.id.trim() ? habit.id.trim() : randomId();
+  const createdAt =
+    typeof habit.createdAt === "string" && habit.createdAt
+      ? habit.createdAt
+      : new Date().toISOString();
+  const checkins = habit.checkins === undefined ? [] : habit.checkins;
+  if (!Array.isArray(checkins) || checkins.some((key) => !isValidDateKey(key))) {
+    throw new Error(`habit ${index} has invalid checkins`);
+  }
+  return {
+    id,
+    name,
+    color,
+    createdAt,
+    checkins: [...new Set(checkins)].sort(),
+  };
+}
+
+export function normalizeState(input) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    throw new Error("state must be an object");
+  }
+  if (!Array.isArray(input.habits)) {
+    throw new Error("habits must be an array");
+  }
+  return { habits: input.habits.map((habit, index) => normalizeHabit(habit, index)) };
+}
+
+export function createHabit({ name, color } = {}) {
+  return normalizeHabit({ name, color });
+}
+
+export function toggleToday(habit, now = new Date()) {
+  const key = todayKey(now);
+  const has = habit.checkins.includes(key);
+  const checkins = has
+    ? habit.checkins.filter((entry) => entry !== key)
+    : [...habit.checkins, key].sort();
+  return { ...habit, checkins };
+}
