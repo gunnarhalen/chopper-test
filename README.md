@@ -1,8 +1,9 @@
 # Rastreador de hábitos
 
 App pessoal (sem login) para marcar hábitos do dia, acompanhar o streak e ver os
-últimos 7 dias. Dá para editar, reordenar, arquivar e anotar cada hábito. Tema
-**dark** único, mobile-first.
+últimos 7 dias. Dá para editar, reordenar, arquivar e anotar cada hábito, buscar
+por nome, ver estatísticas retrospectivas e exportar/importar um backup local.
+Tema **dark** único, mobile-first.
 
 ## Stack
 
@@ -69,6 +70,9 @@ yarn && yarn start
 - `note` é opcional (default `""`): uma linha curta, com no máximo 80
   caracteres (`NOTE_MAX_LENGTH` em `packages/shared`).
 - A UI exibe as datas como `DD-MM-YYYY`.
+- As estatísticas (melhor streak, total de check-ins, resumo do mês) são
+  **derivadas** de `checkins`; nenhum campo novo é gravado, então o shape acima
+  e os contratos de `GET`/`PUT /api/habits` permanecem iguais.
 
 ### Validação
 
@@ -93,6 +97,42 @@ A lógica fica em `packages/shared` e é reutilizada pela API e pelo front:
   hoje).
 - **Conclusão da semana**: `weekSummary` conta quantos dos 7 dias estão feitos e
   a UI mostra no formato `5/7`.
+- **Melhor streak (recorde)**: `bestStreak` retorna a maior sequência de dias
+  consecutivos de todo o histórico. É calculado a partir de `checkins` (não é
+  persistido), então o shape do JSON não muda.
+- **Resumo do mês**: `monthSummary` resume o mês corrente dos hábitos ativos:
+  `daysWithAny` (dias distintos com pelo menos 1 check-in) e `completion`
+  (percentual médio = check-ins do mês ÷ (nº de ativos × dias decorridos)).
+
+## Estatísticas
+
+A aba **Estatísticas** mostra, sem bibliotecas de gráfico (só números e texto):
+
+- **Resumo do mês**: quantos dias tiveram pelo menos 1 hábito feito e a
+  conclusão média do mês.
+- **Por hábito**: melhor streak histórico (recorde) e total de check-ins desde a
+  criação, incluindo arquivados (marcados com uma etiqueta).
+
+## Busca rápida
+
+O campo de busca no topo da lista filtra os hábitos **ativos** por nome, no
+cliente (nenhuma chamada nova à API). Sem resultado, aparece um aviso.
+
+## Backup local
+
+Na aba Estatísticas, a seção **Backup local** (sem nuvem, sem sync):
+
+- **Exportar**: baixa o estado atual da API (`GET /api/habits`) como
+  `habits.json`.
+- **Importar**: lê um JSON, valida com `normalizeState` e, após confirmação no
+  mesmo modal usado para excluir, substitui o estado via `PUT /api/habits`.
+  Arquivo fora do formato retorna uma mensagem clara de erro.
+
+## Desfazer
+
+Excluir (após o modal) ou arquivar um hábito mostra um aviso temporário com
+**Desfazer** por alguns segundos. O estado anterior é guardado para poder voltar
+atrás rapidamente, sem `window.confirm` e sem lib nova.
 
 ## Editar, reordenar, arquivar e nota
 
@@ -115,7 +155,8 @@ yarn test
 Executa `node --test` em `apps/api`, cobrindo `GET`/`PUT /api/habits`,
 validação/400 (incluindo `archived`/`note`), persistência após reinício,
 preservação de ordem/arquivados/notas, fallback 503 sem build e os cálculos
-puros de streak, últimos 7 dias, `toggleDate` e `weekSummary`.
+puros de streak, melhor streak, total de check-ins, resumo do mês, últimos 7
+dias, `toggleDate` e `weekSummary`.
 
 ## Estrutura
 

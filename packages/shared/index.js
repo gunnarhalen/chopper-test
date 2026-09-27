@@ -162,3 +162,50 @@ export function weekSummary(checkins = [], now = new Date()) {
     total: days.length,
   };
 }
+
+function dayNumber(key) {
+  const [year, month, day] = key.split("-").map(Number);
+  return Date.UTC(year, month - 1, day) / 86_400_000;
+}
+
+export function bestStreak(checkins = []) {
+  const days = [...new Set(checkins)].sort();
+  let best = 0;
+  let run = 0;
+  let previous = null;
+  for (const key of days) {
+    const current = dayNumber(key);
+    run = previous !== null && current === previous + 1 ? run + 1 : 1;
+    if (run > best) best = run;
+    previous = current;
+  }
+  return best;
+}
+
+export function totalCheckins(checkins = []) {
+  return new Set(checkins).size;
+}
+
+export function monthSummary(habits = [], now = new Date()) {
+  const prefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const active = habits.filter((habit) => !habit.archived);
+  const days = new Set();
+  let done = 0;
+  for (const habit of active) {
+    for (const key of habit.checkins || []) {
+      if (key.startsWith(prefix)) {
+        days.add(key);
+        done += 1;
+      }
+    }
+  }
+  const elapsedDays = now.getDate();
+  const possible = active.length * elapsedDays;
+  return {
+    daysWithAny: days.size,
+    completion: possible === 0 ? 0 : Math.round((done / possible) * 100),
+    totalCheckins: done,
+    activeHabits: active.length,
+    elapsedDays,
+  };
+}

@@ -6,10 +6,13 @@ import path from "node:path";
 import { createServer } from "../server.js";
 import { createStore } from "../store.js";
 import {
+  bestStreak,
   currentStreak,
   dateKey,
   lastSevenDays,
+  monthSummary,
   toggleDate,
+  totalCheckins,
   weekSummary,
   NOTE_MAX_LENGTH,
 } from "@habits/shared";
@@ -211,4 +214,56 @@ test("weekSummary conta conclusoes dentro dos ultimos 7 dias", () => {
     { done: 2, total: 7 },
   );
   assert.deepEqual(weekSummary([], now), { done: 0, total: 7 });
+});
+
+test("bestStreak encontra a maior sequencia historica", () => {
+  assert.equal(bestStreak([]), 0);
+  assert.equal(bestStreak(["2026-09-01"]), 1);
+  assert.equal(bestStreak(["2026-09-01", "2026-09-02", "2026-09-03"]), 3);
+  assert.equal(
+    bestStreak([
+      "2026-09-01",
+      "2026-09-02",
+      "2026-09-10",
+      "2026-09-11",
+      "2026-09-12",
+      "2026-09-13",
+    ]),
+    4,
+  );
+  assert.equal(bestStreak(["2026-09-03", "2026-09-01", "2026-09-02"]), 3);
+  assert.equal(bestStreak(["2026-08-30", "2026-08-31", "2026-09-01"]), 3);
+  assert.equal(bestStreak(["2026-09-01", "2026-09-01", "2026-09-02"]), 2);
+});
+
+test("totalCheckins conta checkins unicos", () => {
+  assert.equal(totalCheckins([]), 0);
+  assert.equal(totalCheckins(["2026-09-01", "2026-09-01", "2026-09-02"]), 2);
+});
+
+test("monthSummary resume o mes corrente dos habitos ativos", () => {
+  const now = new Date(2026, 8, 27);
+  const habits = [
+    {
+      archived: false,
+      checkins: ["2026-09-01", "2026-09-02", "2026-09-27", "2026-08-31"],
+    },
+    { archived: false, checkins: ["2026-09-02", "2026-09-03"] },
+    { archived: true, checkins: ["2026-09-05"] },
+  ];
+  assert.deepEqual(monthSummary(habits, now), {
+    daysWithAny: 4,
+    completion: 9,
+    totalCheckins: 5,
+    activeHabits: 2,
+    elapsedDays: 27,
+  });
+  assert.deepEqual(monthSummary([], now), {
+    daysWithAny: 0,
+    completion: 0,
+    totalCheckins: 0,
+    activeHabits: 0,
+    elapsedDays: 27,
+  });
+  assert.equal(monthSummary([{ archived: true, checkins: ["2026-09-05"] }], now).completion, 0);
 });
