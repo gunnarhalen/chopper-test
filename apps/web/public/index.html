@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kanban pessoal</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <h1>Kanban pessoal</h1>
+      <p class="hint">Crie cartões, arraste entre colunas ou use os botões ←/→.</p>
+    </header>
+
+    <form id="new-card" class="new-card" autocomplete="off">
+      <input
+        id="title"
+        name="title"
+        type="text"
+        placeholder="Título do cartão"
+        maxlength="120"
+        required
+      />
+      <input
+        id="description"
+        name="description"
+        type="text"
+        placeholder="Descrição (opcional)"
+        maxlength="500"
+      />
+      <select id="status" name="status"></select>
+      <button type="submit">Adicionar</button>
+    </form>
+
+    <main id="board" class="board" aria-live="polite"></main>
+
+    <template id="card-template">
+      <article class="card" draggable="true">
+        <h3 class="card-title"></h3>
+        <p class="card-desc"></p>
+        <div class="card-actions">
+          <button type="button" data-action="left" title="Mover para a esquerda">←</button>
+          <button type="button" data-action="right" title="Mover para a direita">→</button>
+          <button type="button" data-action="edit">Editar</button>
+          <button type="button" data-action="delete" class="danger">Apagar</button>
+        </div>
+      </article>
+    </template>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

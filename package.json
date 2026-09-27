@@ -1,0 +1,15 @@
+{
+  "name": "kanban-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Quadro Kanban pessoal — monorepo Yarn workspaces",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "start": "yarn workspace @kanban/api start",
+    "test": "yarn workspace @kanban/api test"
+  },
+  "license": "MIT"
+}
