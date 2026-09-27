@@ -1,0 +1,172 @@
+:root {
+  --bg: #f4f5f7;
+  --col: #ebecf0;
+  --card: #ffffff;
+  --text: #172b4d;
+  --muted: #5e6c84;
+  --accent: #0079bf;
+  --danger: #eb5a46;
+  --radius: 10px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.topbar {
+  padding: 16px;
+}
+
+.topbar h1 {
+  margin: 0 0 4px;
+  font-size: 1.4rem;
+}
+
+.hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.new-card {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto auto;
+  gap: 8px;
+  padding: 0 16px 16px;
+}
+
+.new-card input,
+.new-card select {
+  padding: 10px;
+  border: 1px solid #dfe1e6;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  background: #fff;
+}
+
+.new-card button {
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.board {
+  display: flex;
+  gap: 12px;
+  padding: 0 16px 24px;
+  align-items: flex-start;
+}
+
+.column {
+  flex: 1 1 0;
+  min-width: 0;
+  background: var(--col);
+  border-radius: var(--radius);
+  padding: 10px;
+}
+
+.column.drag-over {
+  outline: 2px dashed var(--accent);
+  outline-offset: -4px;
+}
+
+.column h2 {
+  margin: 4px 6px 10px;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+}
+
+.column .count {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 24px;
+}
+
+.card {
+  background: var(--card);
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 1px 2px rgba(9, 30, 66, 0.15);
+  cursor: grab;
+}
+
+.card.dragging {
+  opacity: 0.5;
+}
+
+.card-title {
+  margin: 0 0 4px;
+  font-size: 0.95rem;
+  word-break: break-word;
+}
+
+.card-desc {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.card-desc:empty {
+  display: none;
+}
+
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.card-actions button {
+  border: 1px solid #dfe1e6;
+  background: #fff;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 0.78rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.card-actions button.danger {
+  color: var(--danger);
+  border-color: #f5c6bf;
+}
+
+.card-actions button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+@media (max-width: 720px) {
+  .new-card {
+    grid-template-columns: 1fr;
+  }
+
+  .board {
+    flex-direction: column;
+  }
+
+  .column {
+    width: 100%;
+  }
+}

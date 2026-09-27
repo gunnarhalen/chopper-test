@@ -1,0 +1,4 @@
+node_modules/
+apps/api/data/*.json
+*.log
+.DS_Store
