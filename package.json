@@ -8,8 +8,9 @@
     "packages/*"
   ],
   "scripts": {
+    "build": "yarn workspace @kanban/web build",
     "start": "yarn workspace @kanban/api start",
-    "test": "yarn workspace @kanban/api test"
+    "test": "yarn build && yarn workspace @kanban/api test"
   },
   "license": "MIT"
 }

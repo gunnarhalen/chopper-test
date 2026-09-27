@@ -6,7 +6,9 @@ import { createBoard, normalizeBoard } from '@kanban/shared';
 import { createStore } from './store.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const WEB_ROOT = resolve(here, '..', 'web', 'public');
+const WEB_ROOT = process.env.WEB_DIST
+  ? resolve(process.env.WEB_DIST)
+  : resolve(here, '..', 'web', 'dist');
 const SHARED_FILE = resolve(here, '..', '..', 'packages', 'shared', 'index.js');
 
 const CONTENT_TYPES = {
@@ -46,6 +48,20 @@ function readBody(req, limit = 1_000_000) {
   });
 }
 
+async function sendFile(res, target) {
+  try {
+    const file = await readFile(target);
+    res.writeHead(200, {
+      'Content-Type': CONTENT_TYPES[extname(target)] || 'application/octet-stream',
+      'Content-Length': file.length,
+    });
+    res.end(file);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function serveStatic(req, res, urlPath) {
   const rel = normalize(decodeURIComponent(urlPath)).replace(/^(\.\.[/\\])+/, '');
   const target = resolve(WEB_ROOT, '.' + (rel === '/' ? '/index.html' : rel));
@@ -55,16 +71,13 @@ async function serveStatic(req, res, urlPath) {
     return;
   }
 
-  try {
-    const file = await readFile(target);
-    res.writeHead(200, {
-      'Content-Type': CONTENT_TYPES[extname(target)] || 'application/octet-stream',
-      'Content-Length': file.length,
-    });
-    res.end(file);
-  } catch {
-    sendJson(res, 404, { error: 'not found' });
+  if (await sendFile(res, target)) return;
+
+  if (!extname(target) && (await sendFile(res, join(WEB_ROOT, 'index.html')))) {
+    return;
   }
+
+  sendJson(res, 404, { error: 'not found' });
 }
 
 export function createServer({ store = createStore() } = {}) {
