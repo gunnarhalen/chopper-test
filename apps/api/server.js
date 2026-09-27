@@ -28,6 +28,19 @@ function sendJson(res, status, body) {
   res.end(payload);
 }
 
+function sendFile(res, file, path, method = 'GET', status = 200) {
+  res.writeHead(status, {
+    'Content-Type': CONTENT_TYPES[extname(path)] || 'application/octet-stream',
+    'Content-Length': file.length,
+  });
+  res.end(method === 'HEAD' ? undefined : file);
+}
+
+function acceptsHtml(req) {
+  const accept = req.headers.accept || '';
+  return accept.includes('text/html') || accept.includes('*/*');
+}
+
 function readBody(req, limit = 1_000_000) {
   return new Promise((resolvePromise, reject) => {
     let size = 0;
@@ -46,8 +59,15 @@ function readBody(req, limit = 1_000_000) {
   });
 }
 
-async function serveStatic(req, res, urlPath) {
-  const rel = normalize(decodeURIComponent(urlPath)).replace(/^(\.\.[/\\])+/, '');
+async function serveStatic(req, res, pathname, method) {
+  let rel;
+  try {
+    rel = normalize(decodeURIComponent(pathname)).replace(/^(\.\.[/\\])+/, '');
+  } catch {
+    sendJson(res, 400, { error: 'bad request' });
+    return;
+  }
+
   const target = resolve(WEB_ROOT, '.' + (rel === '/' ? '/index.html' : rel));
 
   if (target !== WEB_ROOT && !target.startsWith(WEB_ROOT + sep)) {
@@ -57,20 +77,40 @@ async function serveStatic(req, res, urlPath) {
 
   try {
     const file = await readFile(target);
-    res.writeHead(200, {
-      'Content-Type': CONTENT_TYPES[extname(target)] || 'application/octet-stream',
-      'Content-Length': file.length,
-    });
-    res.end(file);
+    sendFile(res, file, target, method);
   } catch {
+    const isApi = pathname === '/api' || pathname.startsWith('/api/');
+    const isAsset = extname(pathname) !== '';
+
+    if (!isApi && !isAsset && acceptsHtml(req)) {
+      const indexFile = join(WEB_ROOT, 'index.html');
+      try {
+        const file = await readFile(indexFile);
+        sendFile(res, file, indexFile, method);
+        return;
+      } catch {
+        // cai no 404 abaixo se o index.html não existir
+      }
+    }
+
     sendJson(res, 404, { error: 'not found' });
   }
 }
 
 export function createServer({ store = createStore() } = {}) {
   return http.createServer(async (req, res) => {
-    const url = new URL(req.url, 'http://localhost');
-    const { pathname } = url;
+    let pathname;
+    try {
+      let target = typeof req.url === 'string' && req.url ? req.url : '/';
+      if (target.startsWith('/')) target = target.replace(/\/{2,}/g, '/');
+      ({ pathname } = new URL(target, 'http://localhost'));
+    } catch {
+      sendJson(res, 400, { error: 'bad request' });
+      return;
+    }
+
+    if (!pathname) pathname = '/';
+    const method = req.method === 'HEAD' ? 'HEAD' : 'GET';
 
     try {
       if (pathname === '/api/boards') {
@@ -106,16 +146,18 @@ export function createServer({ store = createStore() } = {}) {
 
       if (pathname === '/shared.js') {
         const file = await readFile(SHARED_FILE);
-        res.writeHead(200, {
-          'Content-Type': 'text/javascript; charset=utf-8',
-          'Content-Length': file.length,
-        });
-        res.end(file);
+        sendFile(res, file, SHARED_FILE, method);
+        return;
+      }
+
+      if (pathname === '/favicon.ico') {
+        res.writeHead(204);
+        res.end();
         return;
       }
 
       if (req.method === 'GET' || req.method === 'HEAD') {
-        await serveStatic(req, res, pathname);
+        await serveStatic(req, res, pathname, method);
         return;
       }
 

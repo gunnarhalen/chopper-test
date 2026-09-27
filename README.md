@@ -54,6 +54,10 @@ Os testes da API usam `node --test` e um arquivo temporário, cobrindo
 | PUT    | `/api/boards` | Salva o quadro inteiro           |
 | GET    | `/`           | Serve o front                    |
 
+Rotas desconhecidas sem extensão de arquivo que aceitem HTML (navegação) caem
+no `index.html`, permitindo deep links. Assets ausentes e rotas `/api/*`
+inexistentes continuam retornando `404`.
+
 Formato do quadro:
 
 ```json

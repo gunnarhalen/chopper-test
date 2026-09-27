@@ -1,5 +1,6 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
+import http from 'node:http';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -11,6 +12,27 @@ let dir;
 let file;
 let server;
 let base;
+
+function rawRequest(path, method = 'GET') {
+  return new Promise((resolvePromise, reject) => {
+    const req = http.request(
+      { host: '127.0.0.1', port: server.address().port, path, method },
+      (res) => {
+        const chunks = [];
+        res.on('data', (chunk) => chunks.push(chunk));
+        res.on('end', () =>
+          resolvePromise({
+            status: res.statusCode,
+            headers: res.headers,
+            body: Buffer.concat(chunks).toString('utf8'),
+          }),
+        );
+      },
+    );
+    req.on('error', reject);
+    req.end();
+  });
+}
 
 before(async () => {
   dir = await mkdtemp(join(tmpdir(), 'kanban-'));
@@ -112,4 +134,40 @@ test('GET /icons.svg serve o sprite de ícones Tabler', async () => {
   assert.equal(res.headers.get('content-type'), 'image/svg+xml');
   const svg = await res.text();
   assert.match(svg, /symbol\s+id="ti-arrow-left"/);
+});
+
+test('GET /alguma-rota (deep link) serve o front via fallback SPA', async () => {
+  const res = await fetch(`${base}/alguma-rota`, {
+    headers: { Accept: 'text/html' },
+  });
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get('content-type'), /text\/html/);
+  assert.match(await res.text(), /Kanban/i);
+});
+
+test('requires malformado // não derruba o servidor', async () => {
+  const res = await rawRequest('//');
+  assert.equal(res.status, 200);
+
+  const after = await fetch(`${base}/`);
+  assert.equal(after.status, 200);
+  assert.match(await after.text(), /Kanban/i);
+});
+
+test('GET /api/inexistente retorna 404 JSON (sem fallback SPA)', async () => {
+  const res = await fetch(`${base}/api/inexistente`);
+  assert.equal(res.status, 404);
+  assert.equal(res.headers.get('content-type'), 'application/json; charset=utf-8');
+  assert.deepEqual(await res.json(), { error: 'not found' });
+});
+
+test('GET de asset inexistente retorna 404', async () => {
+  const res = await fetch(`${base}/nao-existe.js`);
+  assert.equal(res.status, 404);
+  assert.equal(res.headers.get('content-type'), 'application/json; charset=utf-8');
+});
+
+test('GET /favicon.ico responde 204', async () => {
+  const res = await fetch(`${base}/favicon.ico`);
+  assert.equal(res.status, 204);
 });
