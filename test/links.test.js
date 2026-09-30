@@ -125,3 +125,68 @@ test('método não suportado em rota existente responde 405', async () => {
   assert.match(res.headers.get('content-type'), /application\/json/);
   assert.deepEqual(await res.json(), { error: 'method_not_allowed' });
 });
+
+test('GET /links lista os links criados', async () => {
+  const { baseUrl } = await startServer();
+
+  const empty = await fetch(`${baseUrl}/links`);
+  assert.equal(empty.status, 200);
+  assert.match(empty.headers.get('content-type'), /application\/json/);
+  assert.deepEqual(await empty.json(), { links: [] });
+
+  const created = await fetch(`${baseUrl}/links`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url: 'https://example.com/lista' }),
+  });
+  const { code } = await created.json();
+
+  const res = await fetch(`${baseUrl}/links`);
+  assert.equal(res.status, 200);
+  const { links } = await res.json();
+  assert.equal(links.length, 1);
+  assert.equal(links[0].code, code);
+  assert.equal(links[0].url, 'https://example.com/lista');
+  assert.equal(links[0].clicks, 0);
+  assert.equal(typeof links[0].createdAt, 'string');
+});
+
+test('DELETE /links/:code remove o link e responde 204', async () => {
+  const { baseUrl } = await startServer();
+
+  const created = await fetch(`${baseUrl}/links`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url: 'https://example.com/remover' }),
+  });
+  const { code } = await created.json();
+
+  const res = await fetch(`${baseUrl}/links/${code}`, { method: 'DELETE' });
+  assert.equal(res.status, 204);
+
+  const stats = await fetch(`${baseUrl}/links/${code}/stats`);
+  assert.equal(stats.status, 404);
+
+  const { links } = await (await fetch(`${baseUrl}/links`)).json();
+  assert.equal(links.length, 0);
+});
+
+test('DELETE /links/:code inexistente responde 404 com { error: "not_found" }', async () => {
+  const { baseUrl } = await startServer();
+
+  const res = await fetch(`${baseUrl}/links/naoexiste`, { method: 'DELETE' });
+
+  assert.equal(res.status, 404);
+  assert.match(res.headers.get('content-type'), /application\/json/);
+  assert.deepEqual(await res.json(), { error: 'not_found' });
+});
+
+test('método não suportado em /links/:code responde 405', async () => {
+  const { baseUrl } = await startServer();
+
+  const res = await fetch(`${baseUrl}/links/abc123`, { method: 'PUT' });
+
+  assert.equal(res.status, 405);
+  assert.match(res.headers.get('content-type'), /application\/json/);
+  assert.deepEqual(await res.json(), { error: 'method_not_allowed' });
+});

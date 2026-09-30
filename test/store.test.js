@@ -47,3 +47,30 @@ test('incrementClicks de código inexistente retorna undefined', () => {
 
   assert.equal(store.incrementClicks('naoexiste'), undefined);
 });
+
+test('list retorna todos os registros criados', () => {
+  const store = createStore();
+  assert.deepEqual(store.list(), []);
+
+  const a = store.save('https://example.com/a');
+  const b = store.save('https://example.com/b');
+
+  assert.deepEqual(store.list(), [a, b]);
+});
+
+test('remove apaga o registro e retorna o removido', () => {
+  const store = createStore();
+  const saved = store.save('https://example.com/a');
+
+  const removed = store.remove(saved.code);
+
+  assert.deepEqual(removed, saved);
+  assert.equal(store.get(saved.code), undefined);
+  assert.deepEqual(store.list(), []);
+});
+
+test('remove de código inexistente retorna undefined', () => {
+  const store = createStore();
+
+  assert.equal(store.remove('naoexiste'), undefined);
+});

@@ -37,5 +37,15 @@ export function createStore() {
     return record;
   }
 
-  return { save, get, incrementClicks };
+  function list() {
+    return Array.from(records.values());
+  }
+
+  function remove(code) {
+    const record = records.get(code);
+    records.delete(code);
+    return record;
+  }
+
+  return { save, get, incrementClicks, list, remove };
 }

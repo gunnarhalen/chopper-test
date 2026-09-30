@@ -1,6 +1,7 @@
 import http from 'node:http';
 import { pathToFileURL } from 'node:url';
 import { createStore } from './store.js';
+import { STATIC_ROUTES, sendStatic } from './static.js';
 
 function readJson(req) {
   return new Promise((resolve, reject) => {
@@ -41,13 +42,14 @@ function handler(store) {
   return async (req, res) => {
     const { pathname } = new URL(req.url, `http://${req.headers.host ?? 'localhost'}`);
     const statsMatch = pathname.match(/^\/links\/([a-zA-Z0-9]+)\/stats$/);
+    const linkMatch = pathname.match(/^\/links\/([a-zA-Z0-9]+)$/);
 
     if (pathname === '/health' && req.method !== 'GET') {
       sendJson(res, 405, { error: 'method_not_allowed' });
       return;
     }
 
-    if (pathname === '/links' && req.method !== 'POST') {
+    if (pathname === '/links' && req.method !== 'POST' && req.method !== 'GET') {
       sendJson(res, 405, { error: 'method_not_allowed' });
       return;
     }
@@ -57,8 +59,18 @@ function handler(store) {
       return;
     }
 
+    if (linkMatch && req.method !== 'DELETE') {
+      sendJson(res, 405, { error: 'method_not_allowed' });
+      return;
+    }
+
     if (req.method === 'GET' && pathname === '/health') {
       sendJson(res, 200, { ok: true });
+      return;
+    }
+
+    if (req.method === 'GET' && pathname === '/links') {
+      sendJson(res, 200, { links: store.list() });
       return;
     }
 
@@ -90,6 +102,22 @@ function handler(store) {
       }
       res.writeHead(404, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'not_found' }));
+      return;
+    }
+
+    if (req.method === 'DELETE' && linkMatch) {
+      const removed = store.remove(linkMatch[1]);
+      if (removed) {
+        res.writeHead(204);
+        res.end();
+        return;
+      }
+      sendJson(res, 404, { error: 'not_found' });
+      return;
+    }
+
+    if (req.method === 'GET' && STATIC_ROUTES[pathname]) {
+      await sendStatic(res, STATIC_ROUTES[pathname]);
       return;
     }
 

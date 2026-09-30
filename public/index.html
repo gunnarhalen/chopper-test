@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Encurtador de Links</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <h1>Encurtador de Links</h1>
+      <p class="subtitle">Crie, compartilhe e gerencie seus links curtos.</p>
+    </header>
+
+    <main class="container">
+      <section class="card" aria-labelledby="create-title">
+        <h2 id="create-title">Cadastrar um link</h2>
+        <form id="create-form" class="create-form" novalidate>
+          <input
+            id="url-input"
+            type="url"
+            name="url"
+            placeholder="https://exemplo.com/pagina"
+            autocomplete="off"
+            required
+          />
+          <button type="submit">Encurtar</button>
+        </form>
+        <p id="create-error" class="error" role="alert" hidden></p>
+
+        <div id="result" class="result" hidden>
+          <span class="result-label">Link encurtado</span>
+          <a id="short-url" class="short-url" href="#" target="_blank" rel="noopener"></a>
+          <div class="result-actions">
+            <button id="copy-button" type="button">Copiar</button>
+            <button id="share-button" type="button">Compartilhar</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="list-title">
+        <div class="list-header">
+          <h2 id="list-title">Links criados</h2>
+          <button id="refresh-button" type="button" class="ghost">Atualizar</button>
+        </div>
+        <p id="list-empty" class="muted" hidden>Nenhum link criado ainda.</p>
+        <ul id="links-list" class="links-list"></ul>
+      </section>
+    </main>
+
+    <dialog id="details-dialog" class="details">
+      <h2>Detalhes do link</h2>
+      <dl id="details-content"></dl>
+      <div class="result-actions">
+        <button id="details-close" type="button" class="ghost">Fechar</button>
+      </div>
+    </dialog>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
