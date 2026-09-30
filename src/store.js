@@ -39,5 +39,13 @@ export function createStore() {
     return record;
   }
 
-  return { save, get, increment };
+  function list() {
+    return Array.from(links.values());
+  }
+
+  function remove(code) {
+    return links.delete(code);
+  }
+
+  return { save, get, increment, list, remove };
 }

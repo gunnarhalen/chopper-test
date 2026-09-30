@@ -38,11 +38,26 @@ Os testes usam `node:test` e `fetch` contra o servidor em uma porta aleatória.
 
 ```
 src/server.js       servidor node:http (exporta createServer())
-test/health.test.js testes de /health
+src/store.js        armazenamento em memória
+public/index.html   página da interface
+public/app.js       app React (sem build, via ESM)
+public/styles.css   estilos da interface
+test/health.test.js  testes de /health
+test/links.test.js   testes de criação, redirecionamento, listagem e exclusão
+test/store.test.js   testes do armazenamento
+test/ui.test.js      testes de entrega dos arquivos da interface
 ```
+
+## Interface
+
+Acesse `http://localhost:3000` para usar a interface web. Por ela é possível
+cadastrar um link, ver a lista dos links cadastrados, clicar em um link para
+ver seus detalhes (URL original, cliques e data de criação) e deletá-lo.
+
+A interface é React carregado como módulo ESM, sem etapa de build e sem
+dependências npm adicionais.
 
 ## Status
 
-Etapa atual: configuração base e endpoint `GET /health`.
-As demais funcionalidades (armazenamento, rotas de criação/redirecionamento,
-contagem de cliques, validação e interface) serão adicionadas nas próximas etapas.
+Concluído: armazenamento em memória, rotas de criação/redirecionamento,
+contagem de cliques, validação de erros e interface web.

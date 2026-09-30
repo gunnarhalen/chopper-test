@@ -101,3 +101,67 @@ test('GET /links/:code/stats inexistente responde 404 { error: "not_found" }', a
   assert.equal(res.status, 404);
   assert.deepEqual(await res.json(), { error: 'not_found' });
 });
+
+test('GET /links lista os links cadastrados', async (t) => {
+  const server = await startServer(t);
+  const { port } = server.address();
+  const host = `127.0.0.1:${port}`;
+
+  const empty = await fetch(`http://${host}/links`);
+  assert.equal(empty.status, 200);
+  assert.equal(
+    empty.headers.get('content-type'),
+    'application/json; charset=utf-8',
+  );
+  assert.deepEqual(await empty.json(), []);
+
+  const createRes = await fetch(`http://${host}/links`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url: 'https://example.com/listado' }),
+  });
+  const { code } = await createRes.json();
+
+  const res = await fetch(`http://${host}/links`);
+  assert.equal(res.status, 200);
+
+  const body = await res.json();
+  assert.equal(body.length, 1);
+  assert.equal(body[0].code, code);
+  assert.equal(body[0].url, 'https://example.com/listado');
+  assert.equal(body[0].clicks, 0);
+  assert.equal(typeof body[0].createdAt, 'string');
+});
+
+test('DELETE /links/:code remove o link e responde 204', async (t) => {
+  const server = await startServer(t);
+  const { port } = server.address();
+  const host = `127.0.0.1:${port}`;
+
+  const createRes = await fetch(`http://${host}/links`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url: 'https://example.com/apagar' }),
+  });
+  const { code } = await createRes.json();
+
+  const res = await fetch(`http://${host}/links/${code}`, {
+    method: 'DELETE',
+  });
+  assert.equal(res.status, 204);
+
+  const statsRes = await fetch(`http://${host}/links/${code}/stats`);
+  assert.equal(statsRes.status, 404);
+});
+
+test('DELETE /links/:code inexistente responde 404 { error: "not_found" }', async (t) => {
+  const server = await startServer(t);
+  const { port } = server.address();
+
+  const res = await fetch(`http://127.0.0.1:${port}/links/nao3x`, {
+    method: 'DELETE',
+  });
+
+  assert.equal(res.status, 404);
+  assert.deepEqual(await res.json(), { error: 'not_found' });
+});

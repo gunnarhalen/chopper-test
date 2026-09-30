@@ -66,3 +66,32 @@ test('1000 inserções geram códigos únicos', () => {
 
   assert.equal(codes.size, 1000);
 });
+
+test('list devolve todos os registros salvos', () => {
+  const store = createStore();
+
+  const first = store.save('https://example.com/1');
+  const second = store.save('https://example.com/2');
+
+  assert.deepEqual(store.list(), [first, second]);
+});
+
+test('list de store vazio devolve array vazio', () => {
+  const store = createStore();
+
+  assert.deepEqual(store.list(), []);
+});
+
+test('remove apaga um registro existente e devolve true', () => {
+  const store = createStore();
+  const record = store.save('https://example.com/remover');
+
+  assert.equal(store.remove(record.code), true);
+  assert.equal(store.get(record.code), undefined);
+});
+
+test('remove de código inexistente devolve false', () => {
+  const store = createStore();
+
+  assert.equal(store.remove('nao3x'), false);
+});

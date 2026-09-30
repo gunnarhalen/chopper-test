@@ -1,7 +1,35 @@
 import http from 'node:http';
-import { pathToFileURL } from 'node:url';
+import path from 'node:path';
+import { readFile } from 'node:fs/promises';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { createStore } from './store.js';
+
+const PUBLIC_DIR = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '..',
+  'public',
+);
+
+const STATIC_ROUTES = new Map([
+  ['/', ['index.html', 'text/html; charset=utf-8']],
+  ['/index.html', ['index.html', 'text/html; charset=utf-8']],
+  ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
+  ['/styles.css', ['styles.css', 'text/css; charset=utf-8']],
+]);
+
+async function serveStatic(res, file, contentType) {
+  try {
+    const body = await readFile(path.join(PUBLIC_DIR, file));
+    res.writeHead(200, {
+      'Content-Type': contentType,
+      'Content-Length': body.length,
+    });
+    res.end(body);
+  } catch {
+    sendJson(res, 404, { error: 'not_found' });
+  }
+}
 
 function sendJson(res, status, payload) {
   const body = JSON.stringify(payload);
@@ -60,6 +88,16 @@ function createHandler(store) {
     const host = req.headers.host ?? 'localhost';
     const url = new URL(req.url, `http://${host}`);
 
+    const staticRoute = STATIC_ROUTES.get(url.pathname);
+    if (staticRoute) {
+      if (req.method !== 'GET') {
+        methodNotAllowed(res, 'GET');
+        return;
+      }
+      await serveStatic(res, staticRoute[0], staticRoute[1]);
+      return;
+    }
+
     if (url.pathname === '/health') {
       if (req.method !== 'GET') {
         methodNotAllowed(res, 'GET');
@@ -70,8 +108,18 @@ function createHandler(store) {
     }
 
     if (url.pathname === '/links') {
+      if (req.method === 'GET') {
+        const items = store.list().map((record) => ({
+          code: record.code,
+          url: record.url,
+          clicks: record.clicks,
+          createdAt: record.createdAt,
+        }));
+        sendJson(res, 200, items);
+        return;
+      }
       if (req.method !== 'POST') {
-        methodNotAllowed(res, 'POST');
+        methodNotAllowed(res, 'GET, POST');
         return;
       }
       const { ok, body } = await readJsonBody(req);
@@ -104,6 +152,21 @@ function createHandler(store) {
           clicks: record.clicks,
           createdAt: record.createdAt,
         });
+        return;
+      }
+      sendJson(res, 404, { error: 'not_found' });
+      return;
+    }
+
+    const deleteMatch = url.pathname.match(/^\/links\/([A-Za-z0-9]+)$/);
+    if (deleteMatch) {
+      if (req.method !== 'DELETE') {
+        methodNotAllowed(res, 'DELETE');
+        return;
+      }
+      if (store.remove(deleteMatch[1])) {
+        res.writeHead(204);
+        res.end();
         return;
       }
       sendJson(res, 404, { error: 'not_found' });

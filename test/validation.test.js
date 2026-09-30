@@ -102,7 +102,6 @@ test('POST /links com JSON válido continua respondendo 201', async (t) => {
 for (const [method, path] of [
   ['PUT', '/health'],
   ['POST', '/health'],
-  ['GET', '/links'],
   ['DELETE', '/links'],
   ['POST', '/links/abc123/stats'],
   ['DELETE', '/abc123'],
