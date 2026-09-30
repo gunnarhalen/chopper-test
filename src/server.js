@@ -12,6 +12,29 @@ function sendJson(res, status, payload) {
   res.end(body);
 }
 
+function methodNotAllowed(res, allow) {
+  const body = JSON.stringify({ error: 'method_not_allowed' });
+  res.writeHead(405, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Content-Length': Buffer.byteLength(body),
+    Allow: allow,
+  });
+  res.end(body);
+}
+
+function isValidHttpUrl(value) {
+  if (typeof value !== 'string' || value.length === 0) {
+    return false;
+  }
+  let parsed;
+  try {
+    parsed = new URL(value);
+  } catch {
+    return false;
+  }
+  return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+}
+
 function readJsonBody(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
@@ -19,13 +42,13 @@ function readJsonBody(req) {
     req.on('end', () => {
       const raw = Buffer.concat(chunks).toString('utf8');
       if (raw.length === 0) {
-        resolve({});
+        resolve({ ok: false });
         return;
       }
       try {
-        resolve(JSON.parse(raw));
+        resolve({ ok: true, body: JSON.parse(raw) });
       } catch {
-        resolve({});
+        resolve({ ok: false });
       }
     });
     req.on('error', reject);
@@ -37,13 +60,29 @@ function createHandler(store) {
     const host = req.headers.host ?? 'localhost';
     const url = new URL(req.url, `http://${host}`);
 
-    if (req.method === 'GET' && url.pathname === '/health') {
+    if (url.pathname === '/health') {
+      if (req.method !== 'GET') {
+        methodNotAllowed(res, 'GET');
+        return;
+      }
       sendJson(res, 200, { ok: true });
       return;
     }
 
-    if (req.method === 'POST' && url.pathname === '/links') {
-      const body = await readJsonBody(req);
+    if (url.pathname === '/links') {
+      if (req.method !== 'POST') {
+        methodNotAllowed(res, 'POST');
+        return;
+      }
+      const { ok, body } = await readJsonBody(req);
+      if (!ok) {
+        sendJson(res, 400, { error: 'invalid_json' });
+        return;
+      }
+      if (!isValidHttpUrl(body?.url)) {
+        sendJson(res, 400, { error: 'invalid_url' });
+        return;
+      }
       const record = store.save(body.url);
       sendJson(res, 201, {
         code: record.code,
@@ -52,33 +91,39 @@ function createHandler(store) {
       return;
     }
 
-    if (req.method === 'GET') {
-      const statsMatch = url.pathname.match(/^\/links\/([A-Za-z0-9]+)\/stats$/);
-      if (statsMatch) {
-        const record = store.get(statsMatch[1]);
-        if (record) {
-          sendJson(res, 200, {
-            url: record.url,
-            clicks: record.clicks,
-            createdAt: record.createdAt,
-          });
-          return;
-        }
-        sendJson(res, 404, { error: 'not_found' });
+    const statsMatch = url.pathname.match(/^\/links\/([A-Za-z0-9]+)\/stats$/);
+    if (statsMatch) {
+      if (req.method !== 'GET') {
+        methodNotAllowed(res, 'GET');
         return;
       }
+      const record = store.get(statsMatch[1]);
+      if (record) {
+        sendJson(res, 200, {
+          url: record.url,
+          clicks: record.clicks,
+          createdAt: record.createdAt,
+        });
+        return;
+      }
+      sendJson(res, 404, { error: 'not_found' });
+      return;
+    }
 
-      const code = url.pathname.slice(1);
-      if (code.length > 0 && !code.includes('/')) {
-        const record = store.increment(code);
-        if (record) {
-          res.writeHead(302, { Location: record.url });
-          res.end();
-          return;
-        }
-        sendJson(res, 404, { error: 'not_found' });
+    const code = url.pathname.slice(1);
+    if (code.length > 0 && !code.includes('/')) {
+      if (req.method !== 'GET') {
+        methodNotAllowed(res, 'GET');
         return;
       }
+      const record = store.increment(code);
+      if (record) {
+        res.writeHead(302, { Location: record.url });
+        res.end();
+        return;
+      }
+      sendJson(res, 404, { error: 'not_found' });
+      return;
     }
 
     sendJson(res, 404, { error: 'not_found' });
