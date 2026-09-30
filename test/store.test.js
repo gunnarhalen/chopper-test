@@ -27,6 +27,33 @@ test('get de código inexistente devolve undefined', () => {
   assert.equal(store.get('nao3x'), undefined);
 });
 
+test('link novo começa com clicks: 0', () => {
+  const store = createStore();
+
+  const record = store.save('https://example.com');
+
+  assert.equal(record.clicks, 0);
+});
+
+test('increment acumula cliques no registro', () => {
+  const store = createStore();
+
+  const record = store.save('https://example.com');
+
+  store.increment(record.code);
+  store.increment(record.code);
+  const updated = store.increment(record.code);
+
+  assert.equal(updated.clicks, 3);
+  assert.equal(store.get(record.code).clicks, 3);
+});
+
+test('increment de código inexistente devolve undefined', () => {
+  const store = createStore();
+
+  assert.equal(store.increment('nao3x'), undefined);
+});
+
 test('1000 inserções geram códigos únicos', () => {
   const store = createStore();
   const codes = new Set();

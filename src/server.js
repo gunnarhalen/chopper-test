@@ -53,9 +53,24 @@ function createHandler(store) {
     }
 
     if (req.method === 'GET') {
+      const statsMatch = url.pathname.match(/^\/links\/([A-Za-z0-9]+)\/stats$/);
+      if (statsMatch) {
+        const record = store.get(statsMatch[1]);
+        if (record) {
+          sendJson(res, 200, {
+            url: record.url,
+            clicks: record.clicks,
+            createdAt: record.createdAt,
+          });
+          return;
+        }
+        sendJson(res, 404, { error: 'not_found' });
+        return;
+      }
+
       const code = url.pathname.slice(1);
       if (code.length > 0 && !code.includes('/')) {
-        const record = store.get(code);
+        const record = store.increment(code);
         if (record) {
           res.writeHead(302, { Location: record.url });
           res.end();

@@ -60,3 +60,44 @@ test('GET /:code inexistente responde 404 { error: "not_found" }', async (t) => 
   assert.equal(res.headers.get('content-type'), 'application/json; charset=utf-8');
   assert.deepEqual(await res.json(), { error: 'not_found' });
 });
+
+test('3 acessos a GET /:code resultam em clicks: 3', async (t) => {
+  const server = await startServer(t);
+  const { port } = server.address();
+  const host = `127.0.0.1:${port}`;
+
+  const createRes = await fetch(`http://${host}/links`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url: 'https://example.com/contado' }),
+  });
+  const { code } = await createRes.json();
+
+  for (let i = 0; i < 3; i += 1) {
+    const res = await fetch(`http://${host}/${code}`, { redirect: 'manual' });
+    assert.equal(res.status, 302);
+  }
+
+  const statsRes = await fetch(`http://${host}/links/${code}/stats`);
+  assert.equal(statsRes.status, 200);
+  assert.equal(
+    statsRes.headers.get('content-type'),
+    'application/json; charset=utf-8',
+  );
+
+  const stats = await statsRes.json();
+  assert.equal(stats.url, 'https://example.com/contado');
+  assert.equal(stats.clicks, 3);
+  assert.equal(typeof stats.createdAt, 'string');
+  assert.ok(!Number.isNaN(Date.parse(stats.createdAt)));
+});
+
+test('GET /links/:code/stats inexistente responde 404 { error: "not_found" }', async (t) => {
+  const server = await startServer(t);
+  const { port } = server.address();
+
+  const res = await fetch(`http://127.0.0.1:${port}/links/nao3x/stats`);
+
+  assert.equal(res.status, 404);
+  assert.deepEqual(await res.json(), { error: 'not_found' });
+});
