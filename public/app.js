@@ -4,6 +4,26 @@ import htm from 'https://esm.sh/htm@3.1.1';
 
 const html = htm.bind(React.createElement);
 
+function shortUrlFor(code) {
+  return `${window.location.origin}/${code}`;
+}
+
+async function copyText(value) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(value);
+    return;
+  }
+  const textarea = document.createElement('textarea');
+  textarea.value = value;
+  textarea.setAttribute('readonly', '');
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand('copy');
+  document.body.removeChild(textarea);
+}
+
 function App() {
   const [links, setLinks] = useState([]);
   const [url, setUrl] = useState('');
@@ -11,6 +31,7 @@ function App() {
   const [notice, setNotice] = useState('');
   const [selected, setSelected] = useState(null);
   const [details, setDetails] = useState(null);
+  const [copied, setCopied] = useState(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -27,6 +48,29 @@ function App() {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  const closeModal = useCallback(() => {
+    setSelected(null);
+    setDetails(null);
+  }, []);
+
+  useEffect(() => {
+    if (!selected) {
+      return undefined;
+    }
+    function onKeyDown(event) {
+      if (event.key === 'Escape') {
+        closeModal();
+      }
+    }
+    window.addEventListener('keydown', onKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [selected, closeModal]);
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -70,6 +114,19 @@ function App() {
     }
   }
 
+  async function handleCopy(code, event) {
+    event.stopPropagation();
+    setError('');
+    try {
+      await copyText(shortUrlFor(code));
+      setCopied(code);
+      setNotice('Link copiado!');
+      window.setTimeout(() => setCopied((current) => (current === code ? null : current)), 2000);
+    } catch {
+      setError('Não foi possível copiar o link.');
+    }
+  }
+
   async function handleDelete(code, event) {
     event.stopPropagation();
     if (!window.confirm(`Deletar o link /${code}?`)) {
@@ -82,8 +139,7 @@ function App() {
         throw new Error('Falha ao deletar o link.');
       }
       if (selected === code) {
-        setSelected(null);
-        setDetails(null);
+        closeModal();
       }
       await refresh();
     } catch (err) {
@@ -126,16 +182,24 @@ function App() {
                       onClick=${() => handleSelect(link.code)}
                     >
                       <div className="item-main">
-                        <code>/${link.code}</code>
+                        <code className="short-url">${shortUrlFor(link.code)}</code>
                         <span className="original">${link.url}</span>
                         <span className="clicks">${link.clicks} clique(s)</span>
                       </div>
-                      <button
-                        className="danger"
-                        onClick=${(event) => handleDelete(link.code, event)}
-                      >
-                        Deletar
-                      </button>
+                      <div className="item-actions">
+                        <button
+                          className="copy"
+                          onClick=${(event) => handleCopy(link.code, event)}
+                        >
+                          ${copied === link.code ? 'Copiado!' : 'Copiar'}
+                        </button>
+                        <button
+                          className="danger"
+                          onClick=${(event) => handleDelete(link.code, event)}
+                        >
+                          Deletar
+                        </button>
+                      </div>
                     </li>
                   `,
                 )}
@@ -145,23 +209,34 @@ function App() {
 
       ${selected
         ? html`
-            <section className="card">
-              <h2>Detalhes do link</h2>
-              ${details
-                ? html`
-                    <dl>
-                      <dt>Código</dt>
-                      <dd><code>/${selected}</code></dd>
-                      <dt>URL original</dt>
-                      <dd><a href=${details.url}>${details.url}</a></dd>
-                      <dt>Cliques</dt>
-                      <dd>${details.clicks}</dd>
-                      <dt>Criado em</dt>
-                      <dd>${new Date(details.createdAt).toLocaleString()}</dd>
-                    </dl>
-                  `
-                : html`<p className="muted">Carregando…</p>`}
-            </section>
+            <div className="modal-backdrop" onClick=${closeModal}>
+              <div
+                className="modal"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Detalhes do link"
+                onClick=${(event) => event.stopPropagation()}
+              >
+                <div className="modal-header">
+                  <h2>Detalhes do link</h2>
+                  <button className="close" onClick=${closeModal} aria-label="Fechar">×</button>
+                </div>
+                ${details
+                  ? html`
+                      <dl>
+                        <dt>Link</dt>
+                        <dd><a href=${shortUrlFor(selected)}>${shortUrlFor(selected)}</a></dd>
+                        <dt>URL original</dt>
+                        <dd><a href=${details.url}>${details.url}</a></dd>
+                        <dt>Cliques</dt>
+                        <dd>${details.clicks}</dd>
+                        <dt>Criado em</dt>
+                        <dd>${new Date(details.createdAt).toLocaleString()}</dd>
+                      </dl>
+                    `
+                  : html`<p className="muted">Carregando…</p>`}
+              </div>
+            </div>
           `
         : null}
     </main>

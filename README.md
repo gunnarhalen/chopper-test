@@ -51,8 +51,9 @@ test/ui.test.js      testes de entrega dos arquivos da interface
 ## Interface
 
 Acesse `http://localhost:3000` para usar a interface web. Por ela é possível
-cadastrar um link, ver a lista dos links cadastrados, clicar em um link para
-ver seus detalhes (URL original, cliques e data de criação) e deletá-lo.
+cadastrar um link, ver a lista dos links cadastrados (com o link encurtado
+completo), copiar o link, clicar em um link para ver seus detalhes em uma modal
+(URL original, cliques e data de criação) e deletá-lo. O tema é escuro.
 
 A interface é React carregado como módulo ESM, sem etapa de build e sem
 dependências npm adicionais.
