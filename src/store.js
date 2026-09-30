@@ -20,7 +20,7 @@ export function createStore() {
       code = generateCode();
     }
 
-    const record = { code, url, createdAt: new Date().toISOString() };
+    const record = { code, url, createdAt: new Date().toISOString(), clicks: 0 };
     records.set(code, record);
     return record;
   }
@@ -29,5 +29,13 @@ export function createStore() {
     return records.get(code);
   }
 
-  return { save, get };
+  function incrementClicks(code) {
+    const record = records.get(code);
+    if (record) {
+      record.clicks += 1;
+    }
+    return record;
+  }
+
+  return { save, get, incrementClicks };
 }

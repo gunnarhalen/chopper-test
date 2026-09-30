@@ -44,10 +44,24 @@ function handler(store) {
       return;
     }
 
+    const statsMatch = pathname.match(/^\/links\/([a-zA-Z0-9]+)\/stats$/);
+    if (req.method === 'GET' && statsMatch) {
+      const record = store.get(statsMatch[1]);
+      if (record) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ url: record.url, clicks: record.clicks, createdAt: record.createdAt }));
+        return;
+      }
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'not_found' }));
+      return;
+    }
+
     if (req.method === 'GET' && pathname.length > 1) {
       const code = pathname.slice(1);
       const record = store.get(code);
       if (record) {
+        store.incrementClicks(code);
         res.writeHead(302, { Location: record.url });
         res.end();
         return;

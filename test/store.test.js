@@ -29,3 +29,21 @@ test('get de código inexistente retorna undefined', () => {
 
   assert.equal(store.get('naoexiste'), undefined);
 });
+
+test('incrementClicks incrementa o contador do registro', () => {
+  const store = createStore();
+  const saved = store.save('https://example.com/a');
+
+  assert.equal(saved.clicks, 0);
+
+  store.incrementClicks(saved.code);
+  store.incrementClicks(saved.code);
+
+  assert.equal(store.get(saved.code).clicks, 2);
+});
+
+test('incrementClicks de código inexistente retorna undefined', () => {
+  const store = createStore();
+
+  assert.equal(store.incrementClicks('naoexiste'), undefined);
+});
