@@ -1,0 +1,14 @@
+{
+  "name": "link-shortener",
+  "version": "1.0.0",
+  "description": "API HTTP que encurta URLs, em Node puro com armazenamento em memória",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test"
+  }
+}
