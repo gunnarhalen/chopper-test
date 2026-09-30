@@ -1,0 +1,14 @@
+{
+  "name": "encurtador-links",
+  "version": "0.0.0",
+  "private": true,
+  "description": "API HTTP que encurta URLs (Node puro, em memória)",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test"
+  }
+}
