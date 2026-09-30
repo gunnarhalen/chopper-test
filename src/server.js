@@ -20,13 +20,45 @@ function readJson(req) {
   });
 }
 
+function sendJson(res, status, payload) {
+  res.writeHead(status, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(payload));
+}
+
+function isValidUrl(value) {
+  if (typeof value !== 'string') {
+    return false;
+  }
+  try {
+    const { protocol } = new URL(value);
+    return protocol === 'http:' || protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 function handler(store) {
   return async (req, res) => {
     const { pathname } = new URL(req.url, `http://${req.headers.host ?? 'localhost'}`);
+    const statsMatch = pathname.match(/^\/links\/([a-zA-Z0-9]+)\/stats$/);
+
+    if (pathname === '/health' && req.method !== 'GET') {
+      sendJson(res, 405, { error: 'method_not_allowed' });
+      return;
+    }
+
+    if (pathname === '/links' && req.method !== 'POST') {
+      sendJson(res, 405, { error: 'method_not_allowed' });
+      return;
+    }
+
+    if (statsMatch && req.method !== 'GET') {
+      sendJson(res, 405, { error: 'method_not_allowed' });
+      return;
+    }
 
     if (req.method === 'GET' && pathname === '/health') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ok: true }));
+      sendJson(res, 200, { ok: true });
       return;
     }
 
@@ -35,16 +67,20 @@ function handler(store) {
       try {
         payload = await readJson(req);
       } catch {
-        payload = {};
+        sendJson(res, 400, { error: 'invalid_json' });
+        return;
+      }
+
+      if (!isValidUrl(payload?.url)) {
+        sendJson(res, 400, { error: 'invalid_url' });
+        return;
       }
 
       const record = store.save(payload.url);
-      res.writeHead(201, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ code: record.code, shortUrl: `http://${req.headers.host}/${record.code}` }));
+      sendJson(res, 201, { code: record.code, shortUrl: `http://${req.headers.host}/${record.code}` });
       return;
     }
 
-    const statsMatch = pathname.match(/^\/links\/([a-zA-Z0-9]+)\/stats$/);
     if (req.method === 'GET' && statsMatch) {
       const record = store.get(statsMatch[1]);
       if (record) {

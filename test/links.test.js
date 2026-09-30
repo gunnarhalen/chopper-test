@@ -85,3 +85,43 @@ test('GET /links/:code/stats de código inexistente responde 404', async () => {
   assert.equal(res.status, 404);
   assert.deepEqual(await res.json(), { error: 'not_found' });
 });
+
+test('POST /links com URL inválida responde 400 com { error: "invalid_url" }', async () => {
+  const { baseUrl } = await startServer();
+
+  for (const url of ['not-a-url', 'ftp://example.com', '', undefined]) {
+    const res = await fetch(`${baseUrl}/links`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
+
+    assert.equal(res.status, 400);
+    assert.match(res.headers.get('content-type'), /application\/json/);
+    assert.deepEqual(await res.json(), { error: 'invalid_url' });
+  }
+});
+
+test('POST /links com corpo que não é JSON responde 400 com { error: "invalid_json" }', async () => {
+  const { baseUrl } = await startServer();
+
+  const res = await fetch(`${baseUrl}/links`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: 'isto não é json',
+  });
+
+  assert.equal(res.status, 400);
+  assert.match(res.headers.get('content-type'), /application\/json/);
+  assert.deepEqual(await res.json(), { error: 'invalid_json' });
+});
+
+test('método não suportado em rota existente responde 405', async () => {
+  const { baseUrl } = await startServer();
+
+  const res = await fetch(`${baseUrl}/links`, { method: 'PUT' });
+
+  assert.equal(res.status, 405);
+  assert.match(res.headers.get('content-type'), /application\/json/);
+  assert.deepEqual(await res.json(), { error: 'method_not_allowed' });
+});
